@@ -67,6 +67,7 @@ try {
 
     assert(existsSync(join(root, "node_modules", "next")), "create did not install dependencies");
     run("npm", ["run", "check"], root);
+    run("node", [fileURLToPath(new URL("../secret-scan.mjs", import.meta.url)), root], work);
 
     const before = treeHash(root);
     const dry = capture([app, "--contracts", "none", "--yes", "--dry-run", ...variant.args], work);

@@ -11,7 +11,12 @@
     "isolatedModules": true,
     "skipLibCheck": true,
     "types": ["node"],
-    "paths": { "@/*": ["./base/*"] }
+    "paths": {
+      "@/packages/*": ["./_typecheck/packages/*"],
+      "@/*": ["./base/*", "./contracts/*"]
+    },
+    "resolveJsonModule": true
   },
-  "include": ["**/*.ts", "**/*.tsx"]
+  "include": ["**/*.ts", "**/*.tsx"],
+  "exclude": ["_typecheck"]
 }

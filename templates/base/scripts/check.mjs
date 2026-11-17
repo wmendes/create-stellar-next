@@ -3,6 +3,13 @@
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 
+if (existsSync("contracts/Cargo.toml") && !existsSync("packages/contract-ids.json")) {
+  console.error(
+    "✗ The generated contract clients in packages/ are missing. Run the setup script first (npm run setup).",
+  );
+  process.exit(1);
+}
+
 const steps = [
   { name: "Typecheck", command: "next typegen && tsc --noEmit" },
   { name: "Lint", command: "eslint" },

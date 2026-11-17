@@ -3,8 +3,17 @@ import type { Module } from "../lib/compose.ts";
 /** The hello-world contract workspace, created by the stock `stellar contract init` (SPEC §3.4). */
 export const contracts: Module = {
   id: "contracts",
-  templates: [],
+  templates: ["contracts"],
   requires: ["stellar", "cargo"],
+  dependencies: { "@stellar/stellar-sdk": "17.4.0" },
+  env: [
+    {
+      key: "STELLAR_ACCOUNT",
+      comment:
+        "Stellar CLI identity that deploys contracts: a name, never a secret key. `stellar keys ls` lists yours.",
+      value: () => "dev",
+    },
+  ],
   commands: () => [
     {
       command: "stellar",
@@ -13,6 +22,11 @@ export const contracts: Module = {
     },
   ],
   scripts: {
+    setup: {
+      command: "node scripts/setup.mjs",
+      description:
+        "Identity, build, deploy and client generation. Safe to rerun: unchanged contracts are not redeployed",
+    },
     "contracts:build": {
       command: "stellar contract build --manifest-path contracts/Cargo.toml",
       description: "Build every contract to `contracts/target/wasm32v1-none/release/`",
@@ -21,9 +35,20 @@ export const contracts: Module = {
       command: "cargo test --manifest-path contracts/Cargo.toml",
       description: "Run the contracts' Rust unit tests",
     },
+    "contracts:deploy": {
+      command: "node scripts/deploy.mjs",
+      description:
+        "Build, then deploy every contract to the network in `.env`. Mainnet needs `-- --confirm-mainnet`",
+    },
+    "contracts:bindings": {
+      command: "node scripts/bindings.mjs",
+      description: "Regenerate the typed clients in `packages/` with the SDK generator",
+    },
   },
   layout: [
     "`contracts/`: Rust contract workspace from `stellar contract init`. Read `contracts/AGENTS.md` before changing a contract",
+    "`packages/`: generated typed clients and `contract-ids.json`. Do not edit",
+    "`lib/contracts.ts`: one client per contract, configured from `.env`",
   ],
   doctor: [
     {

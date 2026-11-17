@@ -239,7 +239,7 @@ my-app/
 | `registry:publish`, `registry:deploy` | Only with `--registry` |
 | `envs:apply -- <env>` | Only with `--envs`. Prints each stock command before running it |
 
-Configuration is `.env` only: `NEXT_PUBLIC_STELLAR_NETWORK`, `NEXT_PUBLIC_STELLAR_RPC_URL`, `STELLAR_ACCOUNT` (an identity name). Contract IDs are Stellar CLI aliases.
+Configuration is `.env` only: `NEXT_PUBLIC_STELLAR_NETWORK`, `NEXT_PUBLIC_STELLAR_RPC_URL`, `STELLAR_ACCOUNT` (an identity name). Contract IDs are Stellar CLI aliases named `<project>-<contract>`; `setup` copies each ID into the generated `packages/contract-ids.json`, keyed by network, for the app to read (DEC-016).
 
 ### §3.5 Boundaries
 
@@ -517,7 +517,7 @@ Environment facts recorded with the baseline:
 | Testnet e2e | The same against testnet | Nightly from T-207 | Set by T-207 |
 | Docs | Every command named in the generated `AGENTS.md` and the bundled docs exists and runs | Every task from T-501 | Set by T-501 |
 | Frozen paths | Diff against the default branch touches no path in §5.9 | Every task from T-606 | Set by T-606 |
-| Secret scan | No secret-key pattern in generated projects, logs or benchmark results | Every task from T-203 | Set by T-203, extended by T-601 |
+| Secret scan | No secret-key pattern (`S` + 55 base32 characters) in any tracked file; the project e2e also scans each generated project | Every task from T-203 | `npm run scan:secrets`; `node test/secret-scan.mjs <dir>` for a directory. Extended to benchmark results by T-601 |
 
 ### §8.3 Phase gates
 
@@ -577,7 +577,7 @@ A dependency written `G1` means the human has approved that gate.
 | T-105 | Generated-project e2e in CI | T-104, T-006 | §8 | blocked: Q-05, passes locally on macOS, CI job written, not yet run | On three systems: built CLI → temp directory → install → `npm run check` passes; `--dry-run` leaves the directory untouched |
 | T-201 | Command runner | G1 | B-1, INV-09, INV-12, INV-14 | review | One function; logs the exact command; `create` runs the package-manager install through it (Q-07, DEC-011); `--dry-run` prints and does not execute; a failure becomes an error naming the cause and the fix; a missing binary exits `3` |
 | T-202 | Contracts module | T-201 | §3.4, V-06 | review | Calls `stellar contract init`; adds the `contracts:*` scripts; writes `lib/contracts.ts`; the root `AGENTS.md` links to the one in `contracts/` |
-| T-203 | `setup` script | T-202 | INV-03, INV-04, INV-10, V-01 to V-04, V-12, Q-20 | todo | Identity, build, deploy with alias, generate client; adds `contracts:deploy`, `contracts:bindings` and `lib/contracts.ts` (moved from T-202, DEC-015); the app gets each contract ID without reading CLI config at run time; a second run leaves the tree hash unchanged; identities by name only; secret-scan gate added |
+| T-203 | `setup` script | T-202 | INV-03, INV-04, INV-10, V-01 to V-04, V-12, Q-20 | review | Identity, build, deploy with alias, generate client; adds `contracts:deploy`, `contracts:bindings` and `lib/contracts.ts` (moved from T-202, DEC-015); the app gets each contract ID without reading CLI config at run time; a second run leaves the tree hash unchanged; identities by name only; secret-scan gate added |
 | T-204 | Example page | T-203 | §3.4 | todo | The home page shows the hello-world contract's response with no wallet |
 | T-205 | Contract watcher in `dev` | T-203 | §3.4 | todo | A change under `contracts/` triggers rebuild, redeploy and regenerate; the watcher is a plain Node script in `scripts/` |
 | T-206 | `--contracts <id>` | T-203 | §5.1 | todo | A typed client only; no Rust workspace and no `contracts/` directory |
@@ -823,6 +823,20 @@ Decision:
 Alternatives: `stellar contract init .` at the project root (rejected: its `AGENTS.md` is never written, and a Cargo workspace mixes into the Next.js root). Wrapping the scripts in `cd contracts &&` (rejected: shell-dependent).
 Consequences: §3.4's `contracts/` is the stock workspace. T-203's acceptance criteria now include `lib/contracts.ts`. Verified for real: create, `contracts:build`, `contracts:test` and `npm run check` all passed on the generated project.
 
+### DEC-016: How `setup` deploys, names aliases and hands IDs to the app (2026-11-17, T-203)
+Context: `setup` must be safe to run twice (INV-10), never write a secret (INV-04), and gate mainnet (INV-03). Stellar CLI aliases and identities are global (Q-20). The app runs in the browser and cannot read CLI aliases, and the SDK generator stores no contract ID.
+Decision:
+- Identities stay in the CLI's global store, referred to by name (`STELLAR_ACCOUNT=dev`). A project-local `--config-dir` was rejected: it would put identity secret keys inside the project tree, and the CLI's own `stellar config migrate` moves local config to the global directory. `setup` refuses a `STELLAR_ACCOUNT` shaped like a secret key, and never echoes it.
+- Aliases are `<project>-<contract>`, with the project name reduced to letters, digits, `-` and `_` (the CLI rejects dots). Two projects therefore never overwrite each other's alias.
+- A deploy is skipped when `stellar contract info hash` for the alias equals the SHA-256 of the local Wasm. A changed contract, a testnet reset or a restarted local network makes the lookup differ or fail, and the contract is redeployed. `contracts:deploy` always deploys, and builds first.
+- `setup` writes each ID to `packages/contract-ids.json`, as `{ network: { contract: { alias, id } } }`, sorted, and rewrites the file only when its content changes. `lib/contracts.ts` reads it for the current network, so switching network needs no code change.
+- Clients are generated from the local Wasm (`npx @stellar/stellar-sdk generate --wasm … --contract-name <contract> --overwrite`), a stock option: deterministic, offline, and possible before a deploy. The SDK is a project dependency (17.4.0), so `npx` uses the installed version.
+- On mainnet, `setup` and `contracts:deploy` print the exact deploy command and exit 1 unless `--confirm-mainnet` is passed, and `setup` never generates or funds a mainnet identity. They use the RPC URL from `.env` and the mainnet passphrase.
+- `check` fails early with "run setup first" when `contracts/` exists but `packages/contract-ids.json` does not. ESLint ignores `packages/`.
+- Templates that import generated files typecheck in place against fixtures in `templates/_typecheck/`, copied from real generator output. No module ships that directory.
+Alternatives: write IDs into `.env` (rejected: `.env` is a file the tool hashes, so the next `add` would report it as edited). Record Wasm hashes locally (rejected: `info hash` asks the network, which also catches resets). Generate bindings from the deployed contract ID (rejected: needs the network and a deploy first).
+Consequences: §3.4. Verified on testnet with an isolated CLI config (`XDG_CONFIG_HOME`): `setup`, then `check` (all four steps), then `setup` again, which left `git status` empty. 11 stub-driven tests cover the order of commands, idempotency, redeploy on change or reset, the secret guard and the mainnet guard. A secret-scan gate now runs on the repository and on each generated project.
+
 ## §11 Open questions
 
 Each has a default. "Blocks" names the first task that cannot finish without an answer. An answer of "use the default" is enough.
@@ -855,7 +869,7 @@ The human answered Q-01 explicitly. Q-02 to Q-04 were taken as the defaults writ
 | ID | Question | Default | Blocks |
 |---|---|---|---|
 | Q-07 (answered in T-201) | Does `create` run the package manager install? The plan does not say. The v0 quickstart has no install step and describes `--package-manager` as "used for install", which implies yes | Yes. Skipped under `--dry-run` | T-103 |
-| Q-20 | Stellar CLI aliases and identities are global by default (`~/.config/stellar`). A generated `setup` that deploys with `--alias hello_world` would silently replace another project's alias of the same name. The plan fixes "contract IDs are Stellar CLI aliases" but says nothing about scope. Is a per-project scope acceptable, and which form? | Decide in T-203 between a project-local `--config-dir` and project-prefixed alias names, check the chosen form against the CLI, log a DEC, and keep `STELLAR_ACCOUNT` an identity name either way | T-203 |
+| Q-20 (answered in T-203, DEC-016) | Stellar CLI aliases and identities are global by default (`~/.config/stellar`). A generated `setup` that deploys with `--alias hello_world` would silently replace another project's alias of the same name. The plan fixes "contract IDs are Stellar CLI aliases" but says nothing about scope. Is a per-project scope acceptable, and which form? | Decide in T-203 between a project-local `--config-dir` and project-prefixed alias names, check the chosen form against the CLI, log a DEC, and keep `STELLAR_ACCOUNT` an identity name either way | T-203 |
 | Q-21 | Bundled docs and INV-01 conflict. The v0 documentation says the package ships its docs in `node_modules/create-stellar-next/docs/`, but a generated project has no dependency on the tool, so that path never exists in the project. Should the bundled docs be copied into the project, for example under `docs/stellar/`? | Copy them into the project at create time, owned like any other generated file | T-501 |
 | Q-19 | V-07 is contradicted in part. The plan says Stellar Wallets Kit v2 is "on JSR, not npm". Both registries publish 2.8.0, though the vendor's README installs from JSR. Which should the `wallets-kit` module install? | JSR, as the vendor documents: `npx jsr add @creit-tech/stellar-wallets-kit`. The npm copy is noted in the bundled docs | T-303 |
 | Q-09 | `stellar.envs.toml` format | Own minimal format. Also accept Scaffold Stellar's `environments.toml` if it maps cleanly | T-402 |

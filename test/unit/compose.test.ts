@@ -174,7 +174,7 @@ describe("templates", () => {
   it("has no template directory that no module uses", () => {
     const used = new Set(ALL_MODULES.flatMap((m) => m.templates));
     const dirs = readdirSync(new URL("../../templates/", import.meta.url), { withFileTypes: true })
-      .filter((d) => d.isDirectory())
+      .filter((d) => d.isDirectory() && !d.name.startsWith("_"))
       .map((d) => d.name);
     expect(dirs.filter((d) => !used.has(d))).toEqual([]);
   });
@@ -188,6 +188,7 @@ describe("templates", () => {
       "@types/react",
       "@types/react-dom",
       "@types/node",
+      "@stellar/stellar-sdk",
     ];
     const root = JSON.parse(
       readFileSync(new URL("../../package.json", import.meta.url), "utf8"),
