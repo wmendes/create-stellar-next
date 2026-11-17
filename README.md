@@ -32,8 +32,8 @@ did not change are not redeployed.
 command that fixes each problem. It exits 3 when a check fails.
 
 Tested on macOS (arm64) with Node 24.18.1, Rust 1.95.0, Stellar CLI 30.0.1, `@stellar/stellar-sdk`
-17.4.0 and Next.js 16.4.6, against testnet and a local network. CI for Linux, macOS and Windows is
-defined in `.github/workflows/ci.yml` but has not run yet.
+17.4.0 and Next.js 16.4.6, against testnet and a local network. CI (`.github/workflows/ci.yml`) runs on Linux and Windows;
+macOS is checked locally, not in CI, for now.
 
 ## Commands
 

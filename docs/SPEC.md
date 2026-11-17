@@ -1013,6 +1013,12 @@ Decision: keep the seven sections in order. Sections 1 to 6 say plainly that not
 Alternatives: omit the empty benchmark sections (rejected: the plan fixes the layout, and their absence would hide that nothing was measured).
 Consequences: §9.4. When the benchmark runs, sections 1 to 6 are replaced by script-generated tables (T-609).
 
+### DEC-036: macOS out of CI for now (2026-11-17)
+Context: hosted macOS runners queued for a long time on the first CI runs, holding up every run. The human asked to cancel the queued run and deactivate macOS in CI "so we can run faster", since they run the checks on a Mac themselves. Removing a platform from a gate is an "ask" item; the human asked for it.
+Decision: `.github/workflows/ci.yml` runs the gates and the project e2e on `ubuntu-latest` and `windows-latest` only; the contract e2e stays on Linux. macOS is covered by local runs on the development machine (macOS arm64), where every gate and every real-network check has run. Restoring it means adding `macos-latest` back to both matrices.
+Alternatives: keep macOS and wait (rejected by the human). Run macOS only on the nightly schedule (not chosen; possible later).
+Consequences: §8.2 and the plan's "CI on Linux, macOS and Windows" (G0, G1). The README and `REPORT.md` now say CI covers Linux and Windows and macOS is checked locally. Also recorded from the first CI runs: the run on `main` failed because `.gitignore`'s `dist/` hid the typecheck fixtures (fixed by anchoring it to `/dist/`), and Windows exposed two bugs in the generated project. `dev.mjs` started Next.js through a shell, so stopping it left orphans; it now runs Next.js's entry point with Node. And the contract watcher crashed when the project path used an 8.3 short name; it now watches the canonical path from `realpathSync.native`.
+
 ## §11 Open questions
 
 Each has a default. "Blocks" names the first task that cannot finish without an answer. An answer of "use the default" is enough.
