@@ -57,6 +57,8 @@ function section(arm, ts) {
     "|---|---|",
     ...keys.map((k) => `| ${k} | ${ts.filter((t) => t.grades?.[k]?.pass).length}/${n} |`),
     `| Self-report calibrated | ${ts.filter((t) => t.selfReport?.calibrated).length}/${n} |`,
+    `| False PASS (claimed PASS, graders failed) | ${ts.filter((t) => !t.pass && t.selfReport?.claim === "PASS").length}/${n} |`,
+    `| Under-claim (claimed FAIL or nothing, graders passed) | ${ts.filter((t) => t.pass && t.selfReport?.claim !== "PASS").length}/${n} |`,
     "",
     "| Trial | Pass | Claimed | Turns | Cost (USD) | Wall time (min) | Read AGENTS.md | Read docs/stellar | Ran check | Raven calls | Outdated patterns |",
     "|---|---|---|---|---|---|---|---|---|---|---|",
