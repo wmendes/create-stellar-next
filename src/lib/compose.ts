@@ -31,13 +31,24 @@ export interface EnvKey {
   comment: string;
 }
 
-/** A prerequisite `doctor` checks (T-301). Data only until then. */
+/** A prerequisite `doctor` checks. It runs through the command runner (B-1). */
 export interface DoctorCheck {
   id: string;
   description: string;
   command: string;
-  fix: string;
+  args: string[] | ((project: ProjectInfo) => string[]);
+  /** Returns what is wrong with the command's stdout, or undefined when it is fine. */
+  verify?: (stdout: string) => string | undefined;
+  /** A short description of a passing result. By default, the first line of stdout. */
+  summary?: (stdout: string) => string;
+  fix: string | ((project: ProjectInfo) => string);
+  /** Run this check only when it returns true. */
+  when?: (project: ProjectInfo) => boolean;
+  /** Skip this check when the check with this id failed. */
+  after?: string;
 }
+
+import type { ProjectInfo } from "./project.ts";
 
 /** A module is data plus files (SPEC §3.2). `create` and `add` both use these definitions (B-2). */
 export interface Module {
@@ -59,6 +70,8 @@ export interface Module {
   layout?: string[];
   /** Scripts the user runs after install and before `dev`, in order. */
   next?: string[];
+  /** Whether an existing project uses this module. By default: it has all of the module's scripts. */
+  detect?: (project: ProjectInfo) => boolean;
 }
 
 export interface Composition {

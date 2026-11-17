@@ -1,4 +1,5 @@
 import type { Module } from "../lib/compose.ts";
+import { MIN_NODE, olderThan } from "../lib/versions.ts";
 
 /** Versions are those create-next-app 16.4.6 resolved on 2026-11-17 (docs/SOURCES.md). */
 export const base: Module = {
@@ -51,11 +52,14 @@ export const base: Module = {
       value: (ctx) => (ctx.network === "testnet" ? "https://soroban-testnet.stellar.org" : ""),
     },
   ],
+  detect: (project) => project.exists,
   doctor: [
     {
       id: "node",
       description: "Node.js 22.12.0 or newer",
-      command: "node --version",
+      command: "node",
+      args: ["--version"],
+      verify: (out) => (olderThan(out.trim(), MIN_NODE) ? `found ${out.trim()}` : undefined),
       fix: "Install Node.js 22.12.0 or newer from https://nodejs.org",
     },
   ],

@@ -321,7 +321,7 @@ Behaviour rules:
 
 ### §5.3 `--json` output
 
-One object with exactly `schemaVersion`, `files`, `next` and `errors`, on one line of stdout, with nothing on stderr. Schema: `schemas/output.schema.json` (JSON Schema draft-07, shipped in the package), version 2 since T-201 (DEC-013). `files` lists every planned file with `create`, `update`, `unchanged` or `conflict`. `errors` is empty exactly when the exit code is 0; each error has a `code` (`INVALID_ARGUMENT`, `NOT_BUILT`, `EDITED_FILES`, `MISSING_PREREQUISITE`, `COMMAND_FAILED`, `CANCELLED`, `INTERNAL`), a `message` and a `fix`. Argument errors are reported in this form too whenever `--json` appears in the arguments. `doctor --json` gets its own schema in T-301.
+One object with exactly `schemaVersion`, `files`, `next` and `errors`, on one line of stdout, with nothing on stderr. Schema: `schemas/output.schema.json` (JSON Schema draft-07, shipped in the package), version 2 since T-201 (DEC-013). `files` lists every planned file with `create`, `update`, `unchanged` or `conflict`. `errors` is empty exactly when the exit code is 0; each error has a `code` (`INVALID_ARGUMENT`, `NOT_BUILT`, `EDITED_FILES`, `MISSING_PREREQUISITE`, `COMMAND_FAILED`, `CANCELLED`, `INTERNAL`), a `message` and a `fix`. Argument errors are reported in this form too whenever `--json` appears in the arguments. `doctor --json` follows `schemas/doctor.schema.json` (version 1): `{ schemaVersion, checks: [{ id, description, status: ok|failed|skipped, detail, fix? }], errors }`, where each failed check also appears in `errors` as `MISSING_PREREQUISITE`. It freezes at G3.
 
 ### §5.4 Edit-detection manifest
 
@@ -582,7 +582,7 @@ A dependency written `G1` means the human has approved that gate.
 | T-205 | Contract watcher in `dev` | T-203 | §3.4 | done | A change under `contracts/` triggers rebuild, redeploy and regenerate; the watcher is a plain Node script in `scripts/` |
 | T-206 | `--contracts <id>` | T-203 | §5.1 | done | A typed client only; no Rust workspace and no `contracts/` directory |
 | T-207 | Contract-loop e2e in CI | T-204, T-006 | §7.3, §8, Q-13 | blocked: Q-05, passes locally on the local network and testnet, CI job written, not yet run | `create --yes` → `setup` → Playwright reads the contract response; local network container on every PR; testnet nightly with an identity funded per run, no stored secret; `setup` twice leaves the project unchanged |
-| T-301 | `doctor` | G2 | §5.1, INV-07, INV-08, INV-12 | todo | Checks come from the module definitions; `--json` validates against its schema; a deliberately removed prerequisite gives exit `3` and the fixing command; identity existence and funding are checked |
+| T-301 | `doctor` | G2 | §5.1, INV-07, INV-08, INV-12 | review | Checks come from the module definitions; `--json` validates against its schema; a deliberately removed prerequisite gives exit `3` and the fixing command; identity existence and funding are checked |
 | T-302 | `add contract` and `add local` | T-301 | INV-05, INV-10, INV-11, V-05, V-14 | todo | Each is idempotent (second run, no diff); each refuses an edited file without `--force`; `network:start` exists only with local |
 | T-303 | `add wallet` for each verified option | T-302, T-003 | §5.5, V-07, V-09, V-15 | todo | Each option implements `connect`, `disconnect`, `getAddress`, `signTransaction` in `lib/wallet/index.ts`; rerunning with another option swaps the adapter without touching pages; idempotent; `create --wallet` uses the same module |
 | T-304 | `add` in a project the tool did not create | T-303 | §5.1, INV-10 | todo | A fresh `create-next-app` project plus `add` passes `check`; idempotency holds there too |
@@ -877,6 +877,17 @@ Decision:
 - CI: a `contract-e2e` job on `ubuntu-latest`. It installs Rust from `rust-toolchain.toml` as the default toolchain (the project lives outside the repository) and the Stellar CLI with the official action pinned by commit (`stellar/stellar-cli` `f2a7b741…` = v30.0.1, with `version: 30.0.1`, since the action reads its version from the ref), then checks it against `.stellar-cli-version`. A nightly `schedule` runs the same job against testnet.
 Alternatives: `@playwright/test` (rejected: one assertion does not need a test runner). A container service in the workflow (rejected: the stock `stellar container start` is what users run). Running the contract e2e on macOS and Windows too (not possible on hosted runners without Docker; the project e2e covers those systems).
 Consequences: §8.2. The `stellar/quickstart` image is `latest`, as `stellar container start` pulls it; T-601 pins an image digest for the benchmark. Verified locally on macOS against both the local network and testnet: both passed, with Playwright reading "Hello Stellar". T-207 stays `blocked` until CI runs (Q-05).
+
+### DEC-021: `doctor` (2026-11-17, T-301)
+Context: `doctor` must take its checks from the module definitions, report with `--json`, exit 3 for a missing prerequisite with the fixing command, and check the configured identity.
+Decision:
+- A doctor check is data on a module: a command and arguments (run through the runner, B-1), an optional output check, an optional `when`, an optional `after` (skip when an earlier check failed), a short summary for passing results, and a fix. Arguments and fixes may depend on the project's `.env`.
+- `doctor` works out which modules a project uses from its files: a module is present when the project has all of its scripts, or when its `detect` says so (base: `package.json` exists; contract-client: `.env` has `NEXT_PUBLIC_STELLAR_CONTRACT_ID`). The same detection will serve `add` in projects the tool did not create. Outside any project, it checks what a default `create` needs: base and contracts.
+- Checks: Node (`node --version` ≥ 22.12.0); Stellar CLI, cargo and the `wasm32v1-none` target (contracts); the identity in `STELLAR_ACCOUNT` (`stellar keys address`); and its funding on the `.env` network (`stellar ledger entry fetch account`, which exits 0 either way, so `doctor` reads `entries` from its JSON). The funding fix is `stellar keys fund <name> --network <net>`, except on mainnet, where `doctor` never suggests a faucet.
+- Any failed check exits 3. `doctor` is a subcommand, so a directory named `doctor` must be created as `./doctor`.
+- Vitest's per-test timeout is now 30 s. Suites that spawn the generated scripts as real processes ran past 5 s under load. No assertion changed.
+Alternatives: record the modules used in `.create-stellar-next.json` (rejected: §5.4 is frozen, and projects the tool did not create have no manifest). A `doctor` that only checks binaries (rejected: an unfunded identity is the most likely `setup` failure).
+Consequences: §5.3. Verified for real: all checks pass on this machine and in the testnet project (identity found, balance 9,999.88 XLM); with `stellar` removed from `PATH`, `doctor --json` exits 3 with the install link.
 
 ## §11 Open questions
 

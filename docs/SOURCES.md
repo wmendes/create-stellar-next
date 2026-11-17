@@ -68,6 +68,7 @@ Every external fact that was checked, and every piece of code or document that w
 | 2026-11-17 | `stellar container` subcommands: `logs`, `start`, `stop`, `use`, `unset`; `start local` pulled `stellar/quickstart:latest` and named the container `stellar-local`; RPC at `http://localhost:8000/rpc` answered `getHealth` "healthy" and friendbot at `/friendbot` funded an account | as stated | Stellar CLI 30.0.1 | Installed `stellar container --help`; observed |
 | 2026-11-17 | The `stellar/stellar-cli` GitHub Action at tag `v30.0.1` is commit `f2a7b74175c34585f3b30a1abf42a2d41cbcc390`; it takes an optional `version` input and otherwise reads the version from the action ref | as stated | v30.0.1 | GitHub API: `gh api repos/stellar/stellar-cli/git/ref/tags/v30.0.1`, and `action.yml` at that tag |
 | 2026-11-17 | Playwright version and licence | 1.65.1, Apache-2.0 | 1.65.1 | Package manager: `npm view playwright` |
+| 2026-11-17 | `stellar ledger entry fetch account --account <name-or-G…> --network <net>` prints JSON with `entries` (one entry with `balance` in stroops for a funded account, `[]` for an unfunded one) and exits 0 in both cases | as stated | Stellar CLI 30.0.1 | Installed `--help`; observed on testnet with a funded and an unfunded identity |
 
 ## Copied code
 

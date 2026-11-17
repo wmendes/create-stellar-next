@@ -13,6 +13,7 @@ export const contractClient: Module = {
     },
   ],
   next: ["setup"],
+  detect: (project) => "NEXT_PUBLIC_STELLAR_CONTRACT_ID" in project.env,
   scripts: {
     setup: {
       command: "node scripts/setup.mjs",

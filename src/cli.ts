@@ -12,6 +12,8 @@ import { createRunner, type Runner, type RunnerOptions } from "./lib/runner.ts";
 import type { WriteAction } from "./lib/writer.ts";
 import { base } from "./modules/base.ts";
 import { CONTRACT_ID } from "./modules/index.ts";
+import { doctor } from "./commands/doctor.ts";
+import { MIN_NODE, olderThan } from "./lib/versions.ts";
 import { TOOL_NAME } from "./name.ts";
 
 export interface CliResult {
@@ -80,12 +82,13 @@ interface Outcome {
   dryRun?: boolean;
 }
 
-const MIN_NODE = "22.12.0";
 const HELP = `Run \`${TOOL_NAME} --help\` to see the accepted arguments.`;
 
 const USAGE = `Usage: ${TOOL_NAME} <dir> [options]
+       ${TOOL_NAME} doctor [--json]
 
-Create a Next.js app with a Stellar contract workflow in <dir>.
+Create a Next.js app with a Stellar contract workflow in <dir>, or check this machine and
+the project in the current directory with doctor (exit 3 when a check fails).
 
 Options:
   --contracts <value>        hello-world | none | <contract id>  (default: hello-world)
@@ -117,17 +120,6 @@ function packageVersion(): string {
     version: string;
   };
   return pkg.version;
-}
-
-function olderThan(version: string, minimum: string): boolean {
-  const a = version.replace(/^v/, "").split(".").map(Number);
-  const b = minimum.split(".").map(Number);
-  for (let i = 0; i < 3; i++) {
-    const x = a[i] ?? 0;
-    const y = b[i] ?? 0;
-    if (x !== y) return x < y;
-  }
-  return false;
 }
 
 function fail(exitCode: number, code: ErrorCode, message: string, fix: string): Outcome {
@@ -177,6 +169,7 @@ export async function main(argv: readonly string[], env: CliEnv = {}): Promise<C
   const { values } = parsed;
   if (values.help) return { exitCode: 0, stdout: USAGE, stderr: "" };
   if (values.version) return { exitCode: 0, stdout: `${packageVersion()}\n`, stderr: "" };
+  if (parsed.positionals[0] === "doctor") return runDoctor(parsed, env, json);
   return render(await runCreate(parsed, env, json), json);
 }
 
@@ -231,7 +224,8 @@ async function runCreate(
 
   const nodeVersion = env.nodeVersion ?? process.versions.node;
   if (olderThan(nodeVersion, MIN_NODE)) {
-    const fix = base.doctor?.find((d) => d.id === "node")?.fix ?? `Install Node.js ${MIN_NODE}+`;
+    const nodeFix = base.doctor?.find((d) => d.id === "node")?.fix;
+    const fix = typeof nodeFix === "string" ? nodeFix : `Install Node.js ${MIN_NODE}+`;
     return fail(
       ExitCode.MissingPrerequisite,
       "MISSING_PREREQUISITE",
@@ -314,6 +308,53 @@ async function runCreate(
       ? `Would create ${name} in ${result.root} (${written} files).`
       : `Created ${name} in ${result.root} (${written} files written).`,
   };
+}
+
+/** Version of schemas/doctor.schema.json that `doctor --json` follows. */
+export const DOCTOR_SCHEMA_VERSION = 1;
+
+async function runDoctor(
+  { positionals }: ReturnType<typeof parse>,
+  env: CliEnv,
+  json: boolean,
+): Promise<CliResult> {
+  if (positionals.length > 1) {
+    const message = `doctor takes no arguments, got: ${positionals.slice(1).join(" ")}.`;
+    const errors = [{ code: "INVALID_ARGUMENT", message, fix: HELP }];
+    return json
+      ? {
+          exitCode: 2,
+          stdout: `${JSON.stringify({ schemaVersion: DOCTOR_SCHEMA_VERSION, checks: [], errors })}\n`,
+          stderr: "",
+        }
+      : { exitCode: 2, stdout: "", stderr: `${message}\n${HELP}\n` };
+  }
+  const runner = (env.createRunner ?? createRunner)({ dryRun: false });
+  const checks = await doctor(env.cwd ?? process.cwd(), runner);
+  const failed = checks.filter((c) => c.status === "failed");
+  const exitCode = failed.length > 0 ? ExitCode.MissingPrerequisite : ExitCode.Success;
+  if (json) {
+    const errors = failed.map((c) => ({
+      code: "MISSING_PREREQUISITE",
+      message: `${c.description}: ${c.detail}`,
+      fix: c.fix ?? HELP,
+    }));
+    return {
+      exitCode,
+      stdout: `${JSON.stringify({ schemaVersion: DOCTOR_SCHEMA_VERSION, checks, errors })}\n`,
+      stderr: "",
+    };
+  }
+  const lines = checks.map((c) => {
+    if (c.status === "ok") return `✓ ${c.description}${c.detail ? ` (${c.detail})` : ""}`;
+    if (c.status === "skipped") return `- ${c.description}: ${c.detail}`;
+    return `✗ ${c.description}: ${c.detail}\n    Fix: ${c.fix}`;
+  });
+  const summary =
+    failed.length === 0
+      ? "All checks passed."
+      : `${failed.length} check(s) failed. Fix them, then run doctor again.`;
+  return { exitCode, stdout: `${lines.join("\n")}\n\n${summary}\n`, stderr: "" };
 }
 
 function parse(argv: readonly string[]) {

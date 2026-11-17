@@ -8,7 +8,12 @@ export interface FakeRunner {
 
 /** A runner that records commands instead of running them. */
 export function fakeRunner(
-  options: { missing?: string[]; fail?: (spec: RunSpec) => boolean } = {},
+  options: {
+    missing?: string[];
+    fail?: (spec: RunSpec) => boolean;
+    /** Canned stdout for a command, e.g. `node --version` → "v24.18.1". */
+    stdout?: (spec: RunSpec) => string | undefined;
+  } = {},
 ): FakeRunner {
   const calls: RunSpec[] = [];
   const dryRuns: boolean[] = [];
@@ -18,6 +23,19 @@ export function fakeRunner(
       available: (command) => !(options.missing ?? []).includes(command),
       async run(spec): Promise<RunResult> {
         calls.push(spec);
+        if (options.missing?.includes(spec.command)) {
+          return {
+            ok: false,
+            exitCode: null,
+            stdout: "",
+            stderr: "",
+            error: {
+              code: "MISSING_PREREQUISITE",
+              message: `\`${spec.command}\` was not found on PATH.`,
+              fix: `Install ${spec.command}.`,
+            },
+          };
+        }
         if (runnerOptions.dryRun)
           return { ok: true, skipped: true, exitCode: null, stdout: "", stderr: "" };
         if (options.fail?.(spec)) {
@@ -33,7 +51,7 @@ export function fakeRunner(
             },
           };
         }
-        return { ok: true, exitCode: 0, stdout: "", stderr: "" };
+        return { ok: true, exitCode: 0, stdout: options.stdout?.(spec) ?? "", stderr: "" };
       },
     };
   };
