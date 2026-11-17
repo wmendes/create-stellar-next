@@ -1,7 +1,8 @@
 // Harness for the staking benchmark (see README.md).
 // Usage:
 //   node bench/staking/run.mjs --probe                  what the agent can see, under the trial flags
-//   node bench/staking/run.mjs --trials 3 [--budget 3]  run trials, then the graders, then summarize
+//   node bench/staking/run.mjs --trials 3 [--budget 3] [--mcp raven] [--task v2]
+//                                                       run trials, then the graders, then summarize
 // Needs: npm run build (the CLI), the Stellar CLI, cargo, Claude Code logged in, testnet access.
 import { spawn, spawnSync } from "node:child_process";
 import {
@@ -32,6 +33,10 @@ const WALL_MS = 45 * 60_000;
 const MCP = flag("--mcp", "none");
 if (!["none", "raven"].includes(MCP)) throw new Error(`--mcp must be none or raven, not ${MCP}`);
 const ARM = MCP === "raven" ? "raven" : "baseline";
+// Task version: v1 asked for a wallet stake form the agent cannot test headlessly; v2 asks only for
+// what it can verify (see README.md).
+const TASK = flag("--task", "v2");
+if (!["v1", "v2"].includes(TASK)) throw new Error(`--task must be v1 or v2, not ${TASK}`);
 // Same name and URL as the developer's own entry, so Claude Code reuses its stored OAuth sign-in.
 const RAVEN_CONFIG = JSON.stringify({
   mcpServers: { "stellar-raven": { type: "http", url: "https://raven.stellar.org/mcp" } },
@@ -118,10 +123,10 @@ if (args.includes("--probe")) {
   process.exit(0);
 }
 
-const prompt = readFileSync(join(here, "prompt.md"), "utf8");
+const prompt = readFileSync(join(here, `prompt-${TASK}.md`), "utf8");
 const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
 for (let n = 1; n <= TRIALS; n++) {
-  const id = `${MODEL}-${ARM}-${stamp}-t${n}`;
+  const id = `${MODEL}-${ARM}-${TASK}-${stamp}-t${n}`;
   const results = join(here, "results", id);
   mkdirSync(results, { recursive: true });
   const work = mkdtempSync(join(tmpdir(), "csn-bench-"));
@@ -165,12 +170,12 @@ for (let n = 1; n <= TRIALS; n++) {
 
   spawnSync(
     process.execPath,
-    [join(here, "grade.mjs"), project, transcript, join(results, "grades.json")],
+    [join(here, "grade.mjs"), project, transcript, join(results, "grades.json"), TASK],
     { stdio: "inherit" },
   );
   writeFileSync(
     join(results, "run.json"),
-    `${JSON.stringify({ id, model: MODEL, arm: ARM, budgetUsd: Number(BUDGET), wallMs: run.wallMs, exitCode: run.code, timedOut: run.timedOut, workDir: work }, null, 2)}\n`,
+    `${JSON.stringify({ id, model: MODEL, arm: ARM, task: TASK, budgetUsd: Number(BUDGET), wallMs: run.wallMs, exitCode: run.code, timedOut: run.timedOut, workDir: work }, null, 2)}\n`,
   );
 }
 
