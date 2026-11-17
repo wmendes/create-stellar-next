@@ -455,7 +455,7 @@ The plan lists V-01 to V-08 as "confirmed on 2026-11-12, to recheck". None has b
 | V-14 | Confirmed early: the CLI's built-in `local` network is RPC `http://localhost:8000/rpc`, passphrase `Standalone Network ; February 2017` (2026-11-17, installed `stellar network ls --long`, 30.0.1) | done |
 | V-15 | `[VERIFY: package and API for the "passkeys" wallet option (smart account kit)]` | T-303 |
 | V-16 | Pin 30.0.1: the installed binary and Homebrew's current stable (checked 2026-11-17, `stellar --version`, `brew info stellar-cli`) | done |
-| V-17 | `[VERIFY: current Next.js version, and what create-next-app writes by default (AGENTS.md, CLAUDE.md)]` | T-102, T-602 |
+| V-17 | Resolved: Next.js 16.4.6. `create-next-app` 16.4.6 writes `AGENTS.md` (a block that `next dev` re-adds) but no `CLAUDE.md`; it wires Tailwind 4.3.3 through `@tailwindcss/turbopack` in `next.config.ts`, enables `cacheComponents` and `partialPrefetching`, and resolves React 19.3.0, TypeScript 5.9.3 and ESLint 9.39.5 (2026-11-17, a reference project generated with `npx create-next-app@16.4.6`; `npm view`) | done |
 | V-18 | `[VERIFY: how each benchmark agent runs headless with a turn, time and token limit, and how its version is read]` | T-601 |
 
 T-002 checked V-01 to V-08, V-12, V-13 and V-14 (2026-11-17). All held except V-07, which is contradicted in part (Q-19). V-01 and V-08 are more precise than the plan: the generator also takes `--network`, and the Node floor is 22.12.0.
@@ -509,7 +509,7 @@ Environment facts recorded with the baseline:
 | Install | Locked install | Every task | `npm ci` |
 | Format | Formatting check (Biome; Markdown excluded) | Every task | `npm run format:check` |
 | Lint | Lint with warnings as errors, over every non-Markdown file Biome sees (`.gitignore` respected) | Every task | `npm run lint` |
-| Types | TypeScript typecheck of `src/`, `test/` and config. Templates join in T-102 | Every task | `npm run typecheck` |
+| Types | TypeScript typecheck of `src/`, `test/` and config, then of `templates/` in place | Every task | `npm run typecheck` |
 | Unit | Vitest suite | Every task | `npm test` |
 | Build | CLI build to `dist/` | Every task | `npm run build` |
 | Project e2e | Built CLI → temp directory → install → `npm run check` | Every task from T-105. Slow | Set by T-105 |
@@ -571,7 +571,7 @@ A dependency written `G1` means the human has approved that gate.
 | T-005 | Repository skeleton and local gates | T-001 | §3.1, §6.2, §8.2 | done | Manifest (ESM, Node 22 or newer), committed lockfile, TypeScript, lint and format, Vitest; a test written first shows the CLI prints its version; the tool name lives in one constant; `.gitignore` added; the five every-task gates in §8.2 have exact commands and pass from a clean checkout; lint tool DEC. Needs Q-06 for the `license` field and `LICENSE` file |
 | T-006 | CI on Linux, macOS and Windows | T-005 | §8, §11 Q-05 | blocked: Q-05, workflow written, not yet run | A GitHub Actions matrix runs every §8.2 every-task gate in locked mode on the three systems and is green. Needs Q-05 |
 | T-101 | File writer with edit detection | G0 | §3.2, §5.4, INV-09, INV-11 | review | Hashes recorded in `.create-stellar-next.json`; an unchanged file is rewritten without complaint; an edited file is refused without `--force`; dry-run mode writes nothing; property test: writing the same plan twice changes nothing |
-| T-102 | Module format and base module | T-101 | §3.2, §3.4, §3.5, V-17 | todo | A module is data plus files (files, scripts, dependencies, `.env` keys, doctor checks); base template has one page, `lib/stellar.ts`, `.env.example`, `AGENTS.md`, a one-line `CLAUDE.md` and the `check` script; templates lint and typecheck in place; Tailwind by default and `--style none` omits it |
+| T-102 | Module format and base module | T-101 | §3.2, §3.4, §3.5, V-17 | review | A module is data plus files (files, scripts, dependencies, `.env` keys, doctor checks); base template has one page, `lib/stellar.ts`, `.env.example`, `AGENTS.md`, a one-line `CLAUDE.md` and the `check` script; templates lint and typecheck in place; Tailwind by default and `--style none` omits it |
 | T-103 | `create` for `--contracts none --wallet none` | T-102 | §5.1, INV-01, INV-02, INV-05, Q-07 | todo | Generates a project in a temp directory; nothing in it depends on the tool; `.env.example` targets testnet; no wallet, local, registry or envs file exists |
 | T-104 | Non-interactive surface | T-103 | §5.1–§5.3, INV-06 to INV-09, INV-12 | todo | `--yes`, `--json`, `--dry-run`, `--force`; no TTY behaves as `--yes`; exit codes 0, 1, 2, 3 each have a negative-case test; JSON validates against the committed schema; argument parser and prompt library DEC |
 | T-105 | Generated-project e2e in CI | T-104, T-006 | §8 | todo | On three systems: built CLI → temp directory → install → `npm run check` passes; `--dry-run` leaves the directory untouched |
@@ -769,6 +769,20 @@ Decision: `planWrites` reads the disk and manifest and classifies each file: abs
 Alternatives: write the non-conflicting files and skip the rest (rejected: leaves a project half updated). `fast-check` (rejected for now: one loop over 50 seeded plans covers the property without a dependency).
 Consequences: §5.4 now fixes the manifest format; it freezes at G1.
 
+### DEC-010: Module format and the base template (2026-11-17, T-102)
+Context: T-102 defines how modules are written and what the base project contains. The plan asks for real template files, plain token replacement, and a standard Next.js app.
+Decision:
+- A module (`src/modules/`) is data: template directories, scripts with a one-line description each, dependencies, `.env` keys and doctor checks. `compose()` (`src/lib/compose.ts`) merges a module list into files. A script, file or `.env` key has exactly one owning module, and two modules may not pin one package to different versions. `package.json`, `.env` and `.env.example` are generated from the merged data, not templated. The only token is `{{SCRIPTS}}`, filled into `AGENTS.md`.
+- The base template follows what `create-next-app` 16.4.6 writes, with its resolved versions pinned exactly: Next 16.4.6, React 19.3.0, TypeScript 5.9.3, ESLint 9.39.5, Tailwind 4.3.3 through `@tailwindcss/turbopack`. Generated projects keep TypeScript 5.9.3, the version Next tested, although this repository uses 7.0.2. Departures: no Google Fonts (a build would need network access) and no generated `LayoutProps` type (so templates typecheck before `next typegen`). `.gitignore` adds `!.env.example`. `@types/node` is 22.20.5 to match the Node floor.
+- Next's own `AGENTS.md` block is kept verbatim at the top of the generated `AGENTS.md`. `next dev` re-adds that block when it is missing, which would otherwise change a file the tool has hashed; with it present, `next dev` left the file byte-identical.
+- `create` writes `.env` as well as `.env.example`, with the same content. They hold only network names, URLs and identity names, so the app builds without a copy step.
+- `check` is `node scripts/check.mjs`. It prints and runs `next typegen && tsc --noEmit`, `eslint`, `cargo test` in `contracts/` when `contracts/Cargo.toml` exists, and `next build`. The contracts module will not need to edit `check`.
+- `--style tailwind` and `--style none` are two modules, so the page and layout are the same in both.
+- Templates typecheck in place against root dev dependencies at the generated versions (`templates/tsconfig.json`), and a unit test keeps those versions equal. `.gitignore` is stored as `templates/base/_gitignore`, because npm may drop `.gitignore` from packages; T-702 confirms this with `npm pack`.
+- Biome now formats with two-space indentation and lines of 100 characters, like the Next.js templates. This reformatted the existing source; no behaviour changed.
+Alternatives: a template language such as EJS or Handlebars (rejected: the plan forbids it). Copying `create-next-app`'s output at run time (rejected: a runtime dependency on another generator and its network access). TypeScript 7 in generated projects (rejected: not what Next 16.4.6 was tested with).
+Consequences: §3.2, §5.5, §8.2. Verified by generating both style variants with the built composer, installing them and running `npm run check`; both passed.
+
 ## §11 Open questions
 
 Each has a default. "Blocks" names the first task that cannot finish without an answer. An answer of "use the default" is enough.
@@ -802,6 +816,7 @@ The human answered Q-01 explicitly. Q-02 to Q-04 were taken as the defaults writ
 |---|---|---|---|
 | Q-07 | Does `create` run the package manager install? The plan does not say. The v0 quickstart has no install step and describes `--package-manager` as "used for install", which implies yes | Yes. Skipped under `--dry-run` | T-103 |
 | Q-20 | Stellar CLI aliases and identities are global by default (`~/.config/stellar`). A generated `setup` that deploys with `--alias hello_world` would silently replace another project's alias of the same name. The plan fixes "contract IDs are Stellar CLI aliases" but says nothing about scope. Is a per-project scope acceptable, and which form? | Decide in T-203 between a project-local `--config-dir` and project-prefixed alias names, check the chosen form against the CLI, log a DEC, and keep `STELLAR_ACCOUNT` an identity name either way | T-203 |
+| Q-21 | Bundled docs and INV-01 conflict. The v0 documentation says the package ships its docs in `node_modules/create-stellar-next/docs/`, but a generated project has no dependency on the tool, so that path never exists in the project. Should the bundled docs be copied into the project, for example under `docs/stellar/`? | Copy them into the project at create time, owned like any other generated file | T-501 |
 | Q-19 | V-07 is contradicted in part. The plan says Stellar Wallets Kit v2 is "on JSR, not npm". Both registries publish 2.8.0, though the vendor's README installs from JSR. Which should the `wallets-kit` module install? | JSR, as the vendor documents: `npx jsr add @creit-tech/stellar-wallets-kit`. The npm copy is noted in the bundled docs | T-303 |
 | Q-09 | `stellar.envs.toml` format | Own minimal format. Also accept Scaffold Stellar's `environments.toml` if it maps cleanly | T-402 |
 | Q-10 | BT10 hands the agent a fake secret key. Committing it in a prompt file conflicts with "no secret key in any file" and trips the secret scan | Generate a fresh, unfunded key inside each trial. The committed prompt holds a placeholder. The grader searches for that trial's exact key | T-604 |

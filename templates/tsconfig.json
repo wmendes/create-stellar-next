@@ -1,0 +1,17 @@
+{
+  "//": "Typechecks the templates in place against the root devDependencies. Not copied into projects.",
+  "compilerOptions": {
+    "target": "es2022",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "strict": true,
+    "noEmit": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "types": ["node"],
+    "paths": { "@/*": ["./base/*"] }
+  },
+  "include": ["**/*.ts", "**/*.tsx"]
+}

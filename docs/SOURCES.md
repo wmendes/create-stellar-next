@@ -49,13 +49,19 @@ Every external fact that was checked, and every piece of code or document that w
 | 2026-11-17 | TypeScript 7.0.2 supports `--rewriteRelativeImportExtensions`, `--allowImportingTsExtensions`, `--erasableSyntaxOnly`, `--verbatimModuleSyntax` and `module: nodenext` | as stated | 7.0.2 | Installed: `npx tsc --help --all` |
 | 2026-11-17 | Biome config schema | `https://biomejs.dev/schemas/2.6.8/schema.json`, written by `biome init` | 2.6.8 | Installed: `npx biome init` |
 | 2026-11-17 | Latest releases of the CI actions | `actions/checkout` v7.0.1 = `3d3c42e5aac5ba805825da76410c181273ba90b1`; `actions/setup-node` v7.1.0 = `949feb2413d6458794dcd2491c4babbbce0c15c1`; both run on `node24`; setup-node accepts `node-version-file` and `cache` | as stated | GitHub API: `gh api repos/<repo>/releases/latest`, `gh api repos/<repo>/commits/<tag>`, and each tag's `action.yml` |
+| 2026-11-17 | Next.js and create-next-app current versions | `next` 16.4.6 (engines `>=20.9.0`), `create-next-app` 16.4.6, `react` 19.3.1 latest, `tailwindcss` 4.3.5 latest, `eslint` 10.15.0 latest | as stated | Package manager: `npm view` |
+| 2026-11-17 | What `create-next-app` 16.4.6 writes with `--ts --tailwind --eslint --app --agents-md` | `AGENTS.md` (Next's agent block), no `CLAUDE.md`; Tailwind via `@tailwindcss/turbopack` in `next.config.ts`; `cacheComponents` and `partialPrefetching` on; resolved `react` 19.3.0, `typescript` 5.9.3, `eslint` 9.39.5, `tailwindcss` 4.3.3, `@types/react` 19.3.0 | 16.4.6 | Reference project generated with `npx create-next-app@16.4.6` and its `package-lock.json` |
+| 2026-11-17 | Next's `AGENTS.md` block is "written and re-added by `next dev`"; with the block present, `next dev` left the file byte-identical | as stated | 16.4.6 | The block's own text; observed SHA-1 before and after `next dev` (T-102) |
+| 2026-11-17 | `next typegen` generates route types without a full build | as stated | 16.4.6 | Installed: `npx next --help` |
+| 2026-11-17 | Mainnet network passphrase | `Public Global Stellar Network ; September 2015` | Stellar CLI 30.0.1 | Installed: `stellar contract alias ls` output |
 
 ## Copied code
 
-No code has been copied. The rows below are documents copied in unchanged.
+Rows below record documents and code copied in.
 
 | Date       | Our path | Origin (URL + commit) | License | Task |
 |------------|----------|-----------------------|---------|------|
 | 2026-11-17 | `docs/reference/v0-documentation.md` | https://claude.ai/artifact/2xG6XVUVNmEoLYLf4ehFjU, revision 11, Markdown export, 15,024 bytes | Author's own document. Project licence is undecided (SPEC Q-06) | T-000 |
 | 2026-11-17 | `docs/reference/generators-not-frameworks.md` | https://claude.ai/artifact/9zjx3cCCHLi7Vn9ujmbRVv, revision 11, Markdown export, 13,732 bytes | Author's own document. Project licence is undecided (SPEC Q-06) | T-000 |
 | 2026-11-17 | `LICENSE` | https://www.apache.org/licenses/LICENSE-2.0.txt, fetched 2026-11-17, sha256 `cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30` | Apache-2.0 (the licence text itself) | T-005 |
+| 2026-11-17 | `templates/base/AGENTS.md` (the block between `BEGIN:nextjs-agent-rules` and `END:nextjs-agent-rules`), `templates/base/eslint.config.mjs`, `templates/base/tsconfig.json`, `templates/style-tailwind/next.config.ts`, `templates/base/_gitignore` (adds `!.env.example`), `templates/style-*/app/globals.css` and `templates/style-none/next.config.ts` (both adapted) | Output of `npx create-next-app@16.4.6` (https://github.com/vercel/next.js, `packages/create-next-app`), generated 2026-11-17 | MIT | T-102 |
