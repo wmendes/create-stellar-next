@@ -65,6 +65,9 @@ Every external fact that was checked, and every piece of code or document that w
 | 2026-11-17 | `connection()` from `next/server` makes rendering wait for a request; the documented way to keep I/O out of prerendering | as stated | Next 16.4.6 | Installed docs: `node_modules/next/dist/docs/01-app/03-api-reference/04-functions/connection.md` |
 | 2026-11-17 | Turbopack in `next build` fails with "Can't resolve './client.js'" when importing the generated client's TypeScript source; the generated package's `.gitignore` ignores `dist/` | as stated | Next 16.4.6, SDK 17.4.0 | Observed (T-204) |
 | 2026-11-17 | eslint-config-next's `react-hooks/error-boundaries` rule rejects JSX built inside `try/catch` | as stated | eslint-config-next 16.4.6 | Observed (T-204) |
+| 2026-11-17 | `stellar container` subcommands: `logs`, `start`, `stop`, `use`, `unset`; `start local` pulled `stellar/quickstart:latest` and named the container `stellar-local`; RPC at `http://localhost:8000/rpc` answered `getHealth` "healthy" and friendbot at `/friendbot` funded an account | as stated | Stellar CLI 30.0.1 | Installed `stellar container --help`; observed |
+| 2026-11-17 | The `stellar/stellar-cli` GitHub Action at tag `v30.0.1` is commit `f2a7b74175c34585f3b30a1abf42a2d41cbcc390`; it takes an optional `version` input and otherwise reads the version from the action ref | as stated | v30.0.1 | GitHub API: `gh api repos/stellar/stellar-cli/git/ref/tags/v30.0.1`, and `action.yml` at that tag |
+| 2026-11-17 | Playwright version and licence | 1.65.1, Apache-2.0 | 1.65.1 | Package manager: `npm view playwright` |
 
 ## Copied code
 

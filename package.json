@@ -25,7 +25,8 @@
     "format": "biome format --write .",
     "test": "vitest run",
     "test:e2e": "node test/e2e/project.mjs",
-    "scan:secrets": "node test/secret-scan.mjs"
+    "scan:secrets": "node test/secret-scan.mjs",
+    "test:e2e:contracts": "node test/e2e/contracts.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.8",
@@ -35,6 +36,7 @@
     "@types/react-dom": "19.3.0",
     "ajv": "8.20.0",
     "next": "16.4.6",
+    "playwright": "1.65.1",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "typescript": "7.0.2",

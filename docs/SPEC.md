@@ -513,8 +513,8 @@ Environment facts recorded with the baseline:
 | Unit | Vitest suite | Every task | `npm test` |
 | Build | CLI build to `dist/` | Every task | `npm run build` |
 | Project e2e | Built CLI → temp directory → install → `npm run check`, for both style variants; then `--dry-run` and a second `create` must leave the tree unchanged | Every task from T-105. Slow (about 1 minute) | `npm run build && npm run test:e2e` |
-| Contract e2e | `create --yes` → `setup` → Playwright reads the contract response, against a local network container | Every PR from T-207. Slow, needs Docker | Set by T-207 |
-| Testnet e2e | The same against testnet | Nightly from T-207 | Set by T-207 |
+| Contract e2e | `create --yes` → `setup` → `setup` again (git sees no change) → `check` → secret scan → `next start` → Playwright reads "Hello Stellar", against a local network container | Every PR from T-207, Linux only (hosted macOS and Windows runners have no Docker). Slow (several minutes), needs Docker | `npm run build && npm run test:e2e:contracts` |
+| Testnet e2e | The same against testnet | Nightly from T-207 (CI `schedule`) | `npm run build && E2E_NETWORK=testnet npm run test:e2e:contracts` |
 | Docs | Every command named in the generated `AGENTS.md` and the bundled docs exists and runs | Every task from T-501 | Set by T-501 |
 | Frozen paths | Diff against the default branch touches no path in §5.9 | Every task from T-606 | Set by T-606 |
 | Secret scan | No secret-key pattern (`S` + 55 base32 characters) in any tracked file; the project e2e also scans each generated project | Every task from T-203 | `npm run scan:secrets`; `node test/secret-scan.mjs <dir>` for a directory. Extended to benchmark results by T-601 |
@@ -581,7 +581,7 @@ A dependency written `G1` means the human has approved that gate.
 | T-204 | Example page | T-203 | §3.4 | review | The home page shows the hello-world contract's response with no wallet |
 | T-205 | Contract watcher in `dev` | T-203 | §3.4 | review | A change under `contracts/` triggers rebuild, redeploy and regenerate; the watcher is a plain Node script in `scripts/` |
 | T-206 | `--contracts <id>` | T-203 | §5.1 | review | A typed client only; no Rust workspace and no `contracts/` directory |
-| T-207 | Contract-loop e2e in CI | T-204, T-006 | §7.3, §8, Q-13 | todo | `create --yes` → `setup` → Playwright reads the contract response; local network container on every PR; testnet nightly with an identity funded per run, no stored secret; `setup` twice leaves the project unchanged |
+| T-207 | Contract-loop e2e in CI | T-204, T-006 | §7.3, §8, Q-13 | blocked: Q-05, passes locally on the local network and testnet, CI job written, not yet run | `create --yes` → `setup` → Playwright reads the contract response; local network container on every PR; testnet nightly with an identity funded per run, no stored secret; `setup` twice leaves the project unchanged |
 | T-301 | `doctor` | G2 | §5.1, INV-07, INV-08, INV-12 | todo | Checks come from the module definitions; `--json` validates against its schema; a deliberately removed prerequisite gives exit `3` and the fixing command; identity existence and funding are checked |
 | T-302 | `add contract` and `add local` | T-301 | INV-05, INV-10, INV-11, V-05, V-14 | todo | Each is idempotent (second run, no diff); each refuses an edited file without `--force`; `network:start` exists only with local |
 | T-303 | `add wallet` for each verified option | T-302, T-003 | §5.5, V-07, V-09, V-15 | todo | Each option implements `connect`, `disconnect`, `getAddress`, `signTransaction` in `lib/wallet/index.ts`; rerunning with another option swaps the adapter without touching pages; idempotent; `create --wallet` uses the same module |
@@ -867,6 +867,16 @@ Decision:
 - `check` stops with "run setup first" in any project with `lib/contracts.ts` whose `packages/` clients are missing or uncompiled.
 Alternatives: generate the client during `create` (rejected: `create` would need the network, unlike every other path). Store the ID in `packages/contract-ids.json` (rejected: that file is generated, and this ID is user input).
 Consequences: §5.1's `--contracts <id>` is built. Verified on testnet against a deployed hello_world contract: create, `setup`, `check`, then a call through the generated client returned "Hello from-id".
+
+### DEC-020: Contract-loop end-to-end test (2026-11-17, T-207)
+Context: G2 requires, in CI, `create --yes`, then `setup`, then a Playwright check that the page shows the contract's response: against a local network container on every pull request, and against testnet nightly. `setup` run twice must leave the project unchanged.
+Decision:
+- `test/e2e/contracts.mjs`: create a hello-world project in a temp directory; run `setup`; commit to a throwaway git repository; run `setup` again and require an empty `git status`; run `check` and the secret scan; serve with `next start`; read `[data-testid=greeting]` in headless Chromium (Playwright 1.65.1, a dev dependency), expecting "Hello Stellar".
+- The network comes from `E2E_NETWORK` (`local` by default, or `testnet`). It is set through environment variables, which win over `.env` in both the scripts and Next.js, so the generated files stay untouched. On `local`, the test starts `stellar container start local` when no RPC answers, waits for `getHealth`, and stops the container afterwards only if it started it.
+- Each run gets a fresh Stellar CLI config through `XDG_CONFIG_HOME`, so a new identity is generated and funded per run and no secret is stored anywhere.
+- CI: a `contract-e2e` job on `ubuntu-latest`. It installs Rust from `rust-toolchain.toml` as the default toolchain (the project lives outside the repository) and the Stellar CLI with the official action pinned by commit (`stellar/stellar-cli` `f2a7b741…` = v30.0.1, with `version: 30.0.1`, since the action reads its version from the ref), then checks it against `.stellar-cli-version`. A nightly `schedule` runs the same job against testnet.
+Alternatives: `@playwright/test` (rejected: one assertion does not need a test runner). A container service in the workflow (rejected: the stock `stellar container start` is what users run). Running the contract e2e on macOS and Windows too (not possible on hosted runners without Docker; the project e2e covers those systems).
+Consequences: §8.2. The `stellar/quickstart` image is `latest`, as `stellar container start` pulls it; T-601 pins an image digest for the benchmark. Verified locally on macOS against both the local network and testnet: both passed, with Playwright reading "Hello Stellar". T-207 stays `blocked` until CI runs (Q-05).
 
 ## §11 Open questions
 
