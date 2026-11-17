@@ -206,15 +206,8 @@ async function runCreate(
       `--contracts must be hello-world, none, or a contract ID (C followed by 55 characters). Got "${contracts}".`,
     );
   }
-  for (const flag of ["envs"] as const) {
-    if (values[flag]) {
-      return fail(
-        ExitCode.Failure,
-        "NOT_BUILT",
-        `--${flag} is not built yet.`,
-        `Run again without --${flag}.`,
-      );
-    }
+  if (values.envs && contracts !== "hello-world") {
+    return invalid("--envs needs the contracts workspace: use it with --contracts hello-world.");
   }
 
   const nodeVersion = env.nodeVersion ?? process.versions.node;
@@ -278,6 +271,7 @@ async function runCreate(
     contracts,
     local: values.local ?? false,
     wallet: values.wallet ?? "none",
+    envs: values.envs ?? false,
     packageManager,
     force: values.force ?? false,
     dryRun,
@@ -322,14 +316,7 @@ async function runAdd(
       return invalid("add wallet needs --wallet wallets-kit or --wallet extension.");
     }
   }
-  if (target === "envs") {
-    return fail(
-      ExitCode.Failure,
-      "NOT_BUILT",
-      `add ${target} is not built yet.`,
-      "Use add contract or add local for now.",
-    );
-  }
+
   if (rest.length > 0 || (target !== "contract" && arg !== undefined)) {
     return invalid(
       `Unexpected arguments after add ${target}: ${[arg, ...rest].filter(Boolean).join(" ")}.`,
@@ -359,7 +346,7 @@ async function runAdd(
     detectPackageManager(env.userAgent);
   const result = await add({
     root,
-    target: target as "contract" | "local" | "wallet",
+    target: target as "contract" | "local" | "wallet" | "envs",
     wallet: values.wallet,
     contractId: arg,
     packageManager,

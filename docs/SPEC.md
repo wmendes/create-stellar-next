@@ -345,7 +345,20 @@ Every wallet option writes the same interface to `lib/wallet/index.ts`: `connect
 
 ### §5.6 `stellar.envs.toml`
 
-Open decision (Q-09). Default: the project's own minimal format, shown in the v0 documentation, plus reading Scaffold Stellar's `environments.toml` if it maps cleanly. T-403 records what did not map.
+The project's own minimal format (Q-09 default; T-402, DEC-026). Each top-level table is an environment:
+
+```toml
+[testnet]
+network = "testnet"          # testnet | local | mainnet
+accounts = ["dev"]           # Stellar CLI identity names; the first deploys
+# rpc_url = "https://…"      # required for mainnet; defaults for testnet and local
+
+[testnet.contracts.hello_world]
+source = "contracts/contracts/hello-world"   # a crate in the workspace: deployed if changed
+# id = "C…"                                   # or: an already deployed contract, never deployed
+```
+
+Whether Scaffold Stellar's `environments.toml` can also be read is T-403. The format freezes at G4.
 
 ### §5.7 Generated `AGENTS.md`
 
@@ -588,7 +601,7 @@ A dependency written `G1` means the human has approved that gate.
 | T-305 | `--wallet passkeys` and `add wallet --wallet passkeys` | T-303 | §5.5, V-15, Q-22 | dropped (DEC-025) | Passkey smart wallet behind the same `lib/wallet` interface, or a recorded decision to drop the option |
 | T-306 | Drop passkeys and the registry from v0 | T-304 | §1, §5.1, DEC-025 | review | `--wallet passkeys`, `--registry` and `add registry` are argument errors (exit 2); the spec no longer promises either |
 | T-401 | Registry module | G3 | INV-05, V-10 | dropped (DEC-025) | Commands verified first; `registry:publish` and `registry:deploy` wrap `stellar registry`; `contracts:deploy` is unchanged; `doctor` checks for the registry CLI; no registry file when the flag is off |
-| T-402 | Envs module | G3 | §5.6, INV-03, INV-05, INV-10, INV-14 | todo | Parses `stellar.envs.toml`; plans the stock commands; prints each, then runs it; `envs:apply --dry-run` matches a stored snapshot; `envs:apply` on a local network deploys the declared contract; never starts Docker itself; no envs file when the flag is off; TOML parser DEC |
+| T-402 | Envs module | G3 | §5.6, INV-03, INV-05, INV-10, INV-14 | review | Parses `stellar.envs.toml`; plans the stock commands; prints each, then runs it; `envs:apply --dry-run` matches a stored snapshot; `envs:apply` on a local network deploys the declared contract; never starts Docker itself; no envs file when the flag is off; TOML parser DEC |
 | T-403 | Scaffold Stellar `environments.toml` mapping | T-402 | V-11, Q-09 | todo | Tested against Scaffold Stellar's documented examples; what maps and what does not is recorded for `REPORT.md` |
 | T-501 | Generated `AGENTS.md`, bundled docs, `llms.txt`, docs test | G4 | §5.7, INV-15 | todo | The docs test is written first and asserts that every command named in `AGENTS.md` and the bundled docs exists and runs; `AGENTS.md` is under 80 lines with the layout, scripts, pointers and six rules |
 | T-502 | Outdated-patterns section | T-501 | INV-13, V-01, V-08 | todo | Each outdated pattern sits beside its current replacement; each pair has a source in `docs/SOURCES.md` |
@@ -927,6 +940,18 @@ Context: the passkeys wallet option needed a third-party relayer key, extra netw
 Decision: `--wallet` accepts `none`, `wallets-kit` and `extension`. `--registry` is no longer a flag and `registry` is no longer an `add` target; both are ordinary argument errors (exit 2). T-305 and T-401 are dropped, V-10 and V-15 are no longer needed, and G4 loses its registry criterion. M4 is now the envs module (T-402, T-403).
 Alternatives: keep both as "not built yet" (rejected: the human removed them from scope, so the CLI should not suggest they are coming).
 Consequences: §1.2, §1.3, §1.5, §1.6, §3.1, §3.4, §4 (INV-05), §5.1, §6.1a, §8.3 (G4), §9.2. The reference documents still describe both and are left unchanged (§5.9). `REPORT.md` lists this as a deviation from the plan.
+
+### DEC-026: Declarative environments (2026-11-17, T-402)
+Context: `--envs` adds `stellar.envs.toml` and `envs:apply -- <env>`, which prints each stock command, then runs it. `--dry-run` must match a stored snapshot, and applying on a local network must deploy the declared contract.
+Decision:
+- The format is in §5.6. The generated file declares `testnet` and `local`, with mainnet only as a commented example (INV-02).
+- `envs:apply` runs the same shared steps as `setup` (`scripts/stellar.mjs`): create missing identities (never on mainnet), build, deploy `source` contracts unless the network already runs that Wasm, record `id` contracts without deploying, regenerate clients, and set `NEXT_PUBLIC_STELLAR_NETWORK`, `NEXT_PUBLIC_STELLAR_RPC_URL` and `STELLAR_ACCOUNT` in `.env`, keeping every other line. A mainnet deploy needs `--confirm-mainnet`. It never starts Docker: the generated file says to run `network:start` first.
+- `--dry-run` prints the plan without running anything. Conditional steps say when they would run, so the output is deterministic; `test/golden/envs-apply-dry-run.txt` holds the snapshot.
+- `stellar.mjs` gained `configFor()` (settings for any network and deployer), `updateEnv()` and `recordExisting()`. `loadConfig()` now uses `configFor()`, and `setup`'s behaviour is unchanged.
+- TOML parsing: `smol-toml` 1.9.1 (BSD-3-Clause, no dependencies). It is already in every project through `@stellar/stellar-sdk`'s own dependencies, and is declared as a pinned dev dependency so the script does not rely on hoisting.
+- `--envs` and `add envs` need the hello-world contracts workspace; without it they are argument errors (exit 2). With envs built, no CLI option is "not built" any more; the `NOT_BUILT` code stays in the schema (frozen at G1) for future use.
+Alternatives: Scaffold Stellar's `environments.toml` as the native format (deferred to T-403's mapping). `@iarna/toml` (rejected: unmaintained since 2020). A hand-written TOML subset parser (rejected: `smol-toml` is maintained and already installed).
+Consequences: §5.6 (freezes at G4). Verified for real: `create --envs`, then `envs:apply -- local` against the local network container deployed `hello_world` and pointed `.env` at local; a second apply skipped the deploy and left `git status` empty; `check` passed.
 
 ## §11 Open questions
 

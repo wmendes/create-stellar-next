@@ -76,7 +76,6 @@ describe("--json", () => {
     [["my-app", "--network", "futurenet", "--json"], 2, "INVALID_ARGUMENT"],
     [["my-app", "--no-such-flag", "--json"], 2, "INVALID_ARGUMENT"],
     [["--json"], 2, "INVALID_ARGUMENT"],
-    [["my-app", "--envs", "--json"], 1, "NOT_BUILT"],
     [["my-app", "--registry", "--json"], 2, "INVALID_ARGUMENT"],
     [["my-app", "--wallet", "passkeys", "--json"], 2, "INVALID_ARGUMENT"],
   ])("reports %j as JSON with exit %i and code %s", async (argv, exitCode, code) => {

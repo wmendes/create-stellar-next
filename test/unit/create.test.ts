@@ -132,15 +132,3 @@ describe("invalid arguments exit 2 and name the fix", () => {
     expect(existsSync(join(cwd, "my-app"))).toBe(false);
   });
 });
-
-describe("options not built yet", () => {
-  it.each([[["my-app", "--contracts", "none", "--envs"], "--envs"]])(
-    "%j fails with exit 1, writes nothing and says what works today",
-    async (argv, works) => {
-      const result = await run(...argv);
-      expect(result.exitCode).toBe(1);
-      expect(result.stderr).toContain(works);
-      expect(existsSync(join(cwd, "my-app"))).toBe(false);
-    },
-  );
-});

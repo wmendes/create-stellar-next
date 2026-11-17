@@ -26,30 +26,25 @@ function readEnvFile(file) {
   return values;
 }
 
-/** Network settings from .env (environment variables win), checked before anything runs. */
-export function loadConfig() {
-  const env = { ...readEnvFile(".env"), ...process.env };
-  const network = env.NEXT_PUBLIC_STELLAR_NETWORK;
+const LOCAL_RPC = "http://localhost:8000/rpc";
+
+/** Settings for one network and deployer, checked before anything runs. */
+export function configFor({ network, account, rpcUrl }) {
   if (!(network in PASSPHRASES)) {
+    throw new StepError(`The network is "${network ?? ""}". Use testnet, local or mainnet.`);
+  }
+  if (!account) {
     throw new StepError(
-      `NEXT_PUBLIC_STELLAR_NETWORK is "${network ?? ""}". Set it in .env to testnet, local or mainnet.`,
+      "No deploying account. Set STELLAR_ACCOUNT in .env to a Stellar CLI identity name, such as dev.",
     );
   }
-  const account = env.STELLAR_ACCOUNT;
-  if (!account)
-    throw new StepError(
-      "STELLAR_ACCOUNT is not set. Set it in .env to a Stellar CLI identity name, such as dev.",
-    );
   if (SECRET_KEY.test(account)) {
     throw new StepError(
-      "STELLAR_ACCOUNT holds what looks like a secret key. Remove it from .env now, and set STELLAR_ACCOUNT to an identity name instead, such as dev. Import a key into the Stellar CLI with `stellar keys add <name>`.",
+      "The account looks like a secret key. Remove it from your files now, and use an identity name instead, such as dev. Import a key into the Stellar CLI with `stellar keys add <name>`.",
     );
   }
-  const rpcUrl = env.NEXT_PUBLIC_STELLAR_RPC_URL;
   if (network === "mainnet" && !rpcUrl) {
-    throw new StepError(
-      "NEXT_PUBLIC_STELLAR_RPC_URL is empty. Set your mainnet RPC provider's URL in .env.",
-    );
+    throw new StepError("No mainnet RPC URL. Set your mainnet RPC provider's URL.");
   }
   const networkArgs =
     network === "mainnet"
@@ -58,7 +53,40 @@ export function loadConfig() {
   const pkg = JSON.parse(readFileSync("package.json", "utf8"));
   // Aliases are global to the Stellar CLI, so they carry the project name. Dots are not allowed.
   const project = String(pkg.name).replace(/[^A-Za-z0-9_-]/g, "-");
-  return { network, account, networkArgs, project };
+  const defaultRpc = { testnet: "https://soroban-testnet.stellar.org", local: LOCAL_RPC };
+  return { network, account, networkArgs, project, rpcUrl: rpcUrl || defaultRpc[network] };
+}
+
+/** Network settings from .env (environment variables win). */
+export function loadConfig() {
+  const env = { ...readEnvFile(".env"), ...process.env };
+  return configFor({
+    network: env.NEXT_PUBLIC_STELLAR_NETWORK,
+    account: env.STELLAR_ACCOUNT,
+    rpcUrl: env.NEXT_PUBLIC_STELLAR_RPC_URL,
+  });
+}
+
+/** Set keys in .env, keeping every other line as it is. */
+export function updateEnv(values) {
+  let text = existsSync(".env") ? readFileSync(".env", "utf8") : "";
+  for (const [key, value] of Object.entries(values)) {
+    const line = `${key}=${value}`;
+    const pattern = new RegExp(`^${key}=.*$`, "m");
+    text = pattern.test(text)
+      ? text.replace(pattern, line)
+      : `${text}${text && !text.endsWith("\n") ? "\n" : ""}${line}\n`;
+  }
+  if (!existsSync(".env") || readFileSync(".env", "utf8") !== text) writeFileSync(".env", text);
+}
+
+export function deployArgsFor(config, contract) {
+  return deployArgs(config, contract, `${config.project}-${contract.name}`);
+}
+
+/** Record an already deployed contract's ID for a network, without deploying. */
+export function recordExisting(network, name, id) {
+  recordId(network, name, { alias: "", id });
 }
 
 function shown(command, args) {

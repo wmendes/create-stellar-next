@@ -73,6 +73,7 @@ Every external fact that was checked, and every piece of code or document that w
 | 2026-11-17 | The JSR build of Wallets Kit 2.8.0 fails in `next build`: `@metamask/connect-stellar` 0.3.0 (pulled in by the default MetaMask module) imports `@creit.tech/stellar-wallets-kit` without declaring it. The npm package builds and opens its picker | as stated | 2.8.0 | Observed (T-303): build error, `dist/module.mjs` line 1, browser screenshot |
 | 2026-11-17 | `@stellar/varial-sdk` 7.0.0 API: `isConnected`, `requestAccess`, `getAddress`, `signTransaction(xdr, { networkPassphrase, address })` → `{ signedTxXdr, signerAddress }`, `disconnect`; each returns `{ …, error?: { code, message } }`; default export holds them all; licence Apache-2.0 | as stated | 7.0.0 | Installed type definitions under `build/@stellar/freighter-api/src/`, `package.json` |
 | 2026-11-17 | Passkey wallets per the docs: Smart Account Kit (`smart-account-kit`) with an OpenZeppelin relayer API key, account Wasm hash, WebAuthn verifier address, native token contract and a server proxy route | as stated | n/a | Raven `get_doc_page`, asOf 2026-11-17T17:54Z: /docs/build/apps/guestbook/setup-passkeys, /docs/build/apps/guestbook/passkeys-prerequisites; /docs/build/guides/contract-accounts/smart-wallets |
+| 2026-11-17 | `smol-toml` version, licence and API | 1.9.1, BSD-3-Clause, no dependencies, exports `parse`/`stringify`; `@stellar/stellar-sdk` 17.4.0 depends on `^1.6.1` | 1.9.1 | Package manager: `npm view smol-toml`; installed `dist/index.d.ts` |
 
 ## Copied code
 

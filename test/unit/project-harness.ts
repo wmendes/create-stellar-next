@@ -1,7 +1,8 @@
 import { type ChildProcess, spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { chmodSync, existsSync, readdirSync, readFileSync } from "node:fs";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
 import { delimiter, join, relative, sep } from "node:path";
 import { type ComposeContext, compose } from "../../src/lib/compose.ts";
@@ -109,6 +110,7 @@ async function initContracts(root: string): Promise<void> {
 
 export async function createHarness(
   contracts: ComposeContext["contracts"] = "hello-world",
+  extra: Partial<ComposeContext> = {},
 ): Promise<Harness> {
   const work = await mkdtemp(join(tmpdir(), "csn-harness-"));
   const root = join(work, "my-app");
@@ -122,10 +124,20 @@ export async function createHarness(
     network: "testnet",
     style: "none",
     contracts,
+    ...extra,
   };
   for (const f of compose(modulesFor(ctx), ctx).files) {
     await mkdir(join(root, f.path, ".."), { recursive: true });
     await writeFile(join(root, f.path), f.content);
+  }
+  // Scripts that import packages need them; link this repository's copies instead of installing.
+  if (extra.envs) {
+    await mkdir(join(root, "node_modules"), { recursive: true });
+    await symlink(
+      fileURLToPath(new URL("../../node_modules/smol-toml", import.meta.url)),
+      join(root, "node_modules/smol-toml"),
+      "junction",
+    );
   }
   // What `stellar contract init contracts` would have written.
   if (contracts === "hello-world") await initContracts(root);
@@ -182,6 +194,7 @@ export async function createHarness(
         for (const e of readdirSync(dir, { withFileTypes: true }).sort((a, b) =>
           a.name < b.name ? -1 : 1,
         )) {
+          if (e.name === "node_modules") continue;
           const full = join(dir, e.name);
           if (e.isDirectory()) walk(full);
           else hash.update(relative(root, full).split(sep).join("/")).update(readFileSync(full));

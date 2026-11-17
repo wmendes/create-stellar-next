@@ -1,0 +1,32 @@
+# Declarative environments. Apply one with the envs:apply script:
+#   npm run envs:apply -- testnet
+# It prints every stock command before running it. Add --dry-run to print the plan only.
+#
+# Each environment names a network (testnet, local or mainnet) and its accounts: Stellar CLI
+# identity names, never secret keys. The first account deploys. Each contract has either a
+# `source` (a crate in this workspace, deployed if it changed) or an `id` (already deployed).
+
+[testnet]
+network = "testnet"
+accounts = ["dev"]
+
+[testnet.contracts.hello_world]
+source = "contracts/contracts/hello-world"
+
+[local]
+# Start the local network first with the network:start script, or `stellar container start local`.
+network = "local"
+accounts = ["dev"]
+
+[local.contracts.hello_world]
+source = "contracts/contracts/hello-world"
+
+# A mainnet environment uses contracts that are already deployed, and your own RPC provider:
+#
+# [production]
+# network = "mainnet"
+# rpc_url = "https://your-rpc-provider.example"
+# accounts = ["your-funded-identity"]
+#
+# [production.contracts.hello_world]
+# id = "C..."

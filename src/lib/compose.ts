@@ -13,6 +13,8 @@ export interface ComposeContext {
   local?: boolean;
   /** "none" or a wallet option. */
   wallet?: string;
+  /** Add declarative environments (`--envs`). */
+  envs?: boolean;
 }
 
 /** An external command a module runs after its files are written, through the runner (B-1). */

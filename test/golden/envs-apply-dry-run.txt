@@ -1,0 +1,7 @@
+Plan for environment "testnet" on testnet:
+  $ stellar keys generate dev --network testnet --fund   (only if dev does not exist)
+  $ stellar contract build --manifest-path contracts/Cargo.toml
+  $ stellar contract deploy --wasm contracts/target/wasm32v1-none/release/hello_world.wasm --source-account dev --network testnet --alias my-app-hello_world   (only if the network does not already run this Wasm)
+  $ npx @stellar/stellar-sdk generate --wasm contracts/target/wasm32v1-none/release/hello_world.wasm --output-dir packages/hello_world --contract-name hello_world --overwrite
+  $ npx tsc -p packages/hello_world/tsconfig.json
+  set .env: NEXT_PUBLIC_STELLAR_NETWORK=testnet, NEXT_PUBLIC_STELLAR_RPC_URL=https://soroban-testnet.stellar.org, STELLAR_ACCOUNT=dev

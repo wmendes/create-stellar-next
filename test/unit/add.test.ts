@@ -184,10 +184,21 @@ describe("add, other cases", () => {
     expect(r.stderr).toContain("package.json");
   });
 
-  it.each([["envs"]])("reports add %s as not built yet", async (m) => {
-    const r = await add(m);
-    expect(r.exitCode).toBe(1);
-    expect(r.stderr).toContain("not built yet");
+  it("add envs needs the contracts workspace first", async () => {
+    const r = await add("envs");
+    expect(r.exitCode).toBe(2);
+    expect(r.stderr).toContain("add contract");
+  });
+
+  it("add envs after add contract writes stellar.envs.toml and envs:apply, idempotently", async () => {
+    expect((await add("contract")).exitCode).toBe(0);
+    const r = await add("envs");
+    expect(r.exitCode, r.stderr).toBe(0);
+    expect(read("stellar.envs.toml")).toContain("[testnet]");
+    expect(pkg().scripts["envs:apply"]).toBe("node scripts/envs.mjs");
+    const before = snapshot();
+    expect((await add("envs")).exitCode).toBe(0);
+    expect(snapshot()).toEqual(before);
   });
 
   it.each([["database"], ["registry"]])("rejects add %s with exit 2", async (m) => {

@@ -2,6 +2,7 @@ import type { ComposeContext, Module } from "../lib/compose.ts";
 import { base } from "./base.ts";
 import { contractClient } from "./contract-client.ts";
 import { core } from "./core.ts";
+import { envs } from "./envs.ts";
 import { contracts } from "./contracts.ts";
 import { local } from "./local.ts";
 import { WALLETS, walletExtension, walletsKit } from "./wallet.ts";
@@ -20,6 +21,7 @@ export const ALL_MODULES: readonly Module[] = [
   local,
   walletsKit,
   walletExtension,
+  envs,
 ];
 
 /** A contract address: C followed by 55 base32 characters. */
@@ -37,5 +39,6 @@ export function modulesFor(ctx: ComposeContext): Module[] {
     ...(CONTRACT_ID.test(ctx.contracts) ? [contractClient] : []),
     ...(ctx.local ? [local] : []),
     ...(ctx.wallet && WALLETS[ctx.wallet] ? [WALLETS[ctx.wallet] as Module] : []),
+    ...(ctx.envs && withContracts ? [envs] : []),
   ];
 }
