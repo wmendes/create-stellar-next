@@ -54,6 +54,9 @@ Every external fact that was checked, and every piece of code or document that w
 | 2026-11-17 | Next's `AGENTS.md` block is "written and re-added by `next dev`"; with the block present, `next dev` left the file byte-identical | as stated | 16.4.6 | The block's own text; observed SHA-1 before and after `next dev` (T-102) |
 | 2026-11-17 | `next typegen` generates route types without a full build | as stated | 16.4.6 | Installed: `npx next --help` |
 | 2026-11-17 | Mainnet network passphrase | `Public Global Stellar Network ; September 2015` | Stellar CLI 30.0.1 | Installed: `stellar contract alias ls` output |
+| 2026-11-17 | Prompt library candidates | `@clack/prompts` 1.9.0 MIT, modified 2026-11-09, deps `@clack/core`, `sisteransi`, `fast-wrap-ansi`, `fast-string-width`; `@inquirer/prompts` 8.8.0 MIT, modified 2026-11-10; `prompts` 2.4.2, last modified 2023-10-21; `enquirer` 2.4.1, last modified 2023-07-28 | as stated | Package manager: `npm view` |
+| 2026-11-17 | `@clack/prompts` `text()` takes `message`, `placeholder`, `defaultValue`, `initialValue`, `validate` and resolves to a string or a cancel symbol tested with `isCancel`; `validate` returns `string \| Error \| undefined` | as stated | 1.9.0 | Installed: `node_modules/@clack/prompts/dist/index.d.mts`, `node_modules/@clack/core/dist/index.d.mts` |
+| 2026-11-17 | Ajv version and licence | 8.20.0, MIT | 8.20.0 | Package manager: `npm view ajv` |
 
 ## Copied code
 
