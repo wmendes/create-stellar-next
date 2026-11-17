@@ -409,7 +409,7 @@ A tool changes only for a stated reason, recorded as a DEC. Each library choice 
 
 | Concern | Default |
 |---|---|
-| Language and runtime | TypeScript, ESM, Node 22 or newer |
+| Language and runtime | TypeScript, ESM, Node 22.12.0 or newer (the SDK's floor, V-08) |
 | Dependencies | As few as possible: one argument parser, one prompt library |
 | Unit tests | Vitest |
 | End-to-end tests | Node scripts that run the built CLI in a temp directory |
@@ -423,26 +423,26 @@ The plan lists V-01 to V-08 as "confirmed on 2026-11-12, to recheck". None has b
 
 | ID | Item | Checked in |
 |---|---|---|
-| V-01 | `[VERIFY: typed clients are generated with "npx @stellar/stellar-sdk generate --contract-id <id> --output-dir <dir>", and "stellar contract bindings typescript" is deprecated]` | T-002 |
-| V-02 | `[VERIFY: contract Wasm builds to target/wasm32v1-none/release/]` | T-002 |
-| V-03 | `[VERIFY: "stellar keys generate <name> --network testnet --fund" creates a funded identity]` | T-002 |
-| V-04 | `[VERIFY: "stellar contract deploy --wasm <path> --source-account <name> --network <net> --alias <alias>" deploys and records an alias]` | T-002 |
-| V-05 | `[VERIFY: "stellar container start local" runs a local network in Docker]` | T-002 |
-| V-06 | `[VERIFY: "stellar contract init" writes its own AGENTS.md]` | T-002 |
-| V-07 | `[VERIFY: Stellar Wallets Kit version 2 is distributed on JSR, not npm; exact package name and install command]` | T-002 |
-| V-08 | `[VERIFY: the JavaScript SDK needs Node 22 or newer and is ESM first; @stellar/stellar-base must not be imported]` | T-002 |
+| V-01 | Confirmed with one addition: the docs' command is `npx @stellar/stellar-sdk generate --network testnet --contract-id $(stellar contract alias show hello_world --network testnet) --output-dir packages/hello_world`. The generator does not read CLI aliases, and its `--network` accepts `testnet`, `mainnet`, `futurenet` or `localnet`. The CLI manual marks `stellar contract bindings typescript` deprecated (2026-11-17, Raven `stellarDocs` search, asOf 2026-11-17; hello-world-frontend, dapp-frontend, stellar-cli manual) | done |
+| V-02 | Confirmed: `target/wasm32v1-none/release/<crate>.wasm`, built with `stellar contract build`. Rust 1.84.0 or newer is required (2026-11-17, Raven `stellarDocs` search, asOf 2026-11-17; hello-world, simple-account) | done |
+| V-03 | Confirmed: `stellar keys generate <NAME> --fund`, with `-n, --network` (2026-11-17, Raven `stellarDocs` search, asOf 2026-11-17 keys cookbook; installed `stellar keys generate --help`, 30.0.1) | done |
+| V-04 | Confirmed: `--wasm`, `-s, --source-account`, `-n, --network`, `--alias`. `--alias` always overwrites an existing alias without asking (2026-11-17, Raven `stellarDocs` search, asOf 2026-11-17 quickstart deploy page; installed `stellar contract deploy --help`, 30.0.1) | done |
+| V-05 | Confirmed: `stellar container start [NETWORK]`, where NETWORK defaults to `local`. It runs the `stellar/quickstart` image (2026-11-17, Raven `stellarDocs` search, asOf 2026-11-17 CLI manual, quickstart getting-started) | done |
+| V-06 | Confirmed: `stellar contract init` generates an `AGENTS.md` in the project directory (2026-11-17, Raven `stellarDocs` search, asOf 2026-11-17 agent-cli). It does not overwrite files unless `--overwrite` is passed (installed `stellar contract init --help`, 30.0.1) | done |
+| V-07 | **Contradicted in part.** Version 2 is on JSR as `@creit-tech/stellar-wallets-kit` and on npm as `@creit.tech/stellar-wallets-kit`. Both are at 2.8.0, and npm has had v2 since 2.0.0 on 2026-02-21. The vendor's README installs it with `npx jsr add @creit-tech/stellar-wallets-kit` (2026-11-17, package registries: `npm view`, `https://jsr.io/@creit-tech/stellar-wallets-kit/meta.json`). Raven has no page on the install path. See Q-19 | blocked: Q-19 |
+| V-08 | Confirmed, with a precise floor: `@stellar/stellar-sdk` 17.4.0 declares `engines.node >=22.12.0` and `"type": "module"`, and also ships a CommonJS build. `@stellar/stellar-base` 15.0.0 is deprecated on npm: "rolled into @stellar/stellar-sdk", which exposes it as the `@stellar/stellar-sdk/base` subpath (2026-11-17, `npm view`). The docs say SDK v17 is current (Raven) | done |
 | V-09 | `[VERIFY: package for the "extension" wallet option. Sources disagree between Freighter and @stellar/varial-sdk]` | T-003 |
 | V-10 | `[VERIFY: "stellar registry" commands for publish and deploy, and how stellar-registry-cli is installed]` | T-401 |
 | V-11 | `[VERIFY: Scaffold Stellar's official quickstart, its prerequisites, and the environments.toml format]` | T-403, T-602 |
-| V-12 | `[VERIFY: "stellar contract alias show <alias> --network <net>" prints the contract ID]` | T-002 |
-| V-13 | `[VERIFY: testnet RPC URL https://soroban-testnet.stellar.org and the testnet network passphrase]` | T-002 |
-| V-14 | `[VERIFY: RPC URL and network passphrase of the local network container]` | T-302 |
+| V-12 | Confirmed: `stellar contract alias show [OPTIONS] <ALIAS>` shows the contract ID for an alias (2026-11-17, Raven `stellarDocs` search, asOf 2026-11-17 CLI manual) | done |
+| V-13 | Confirmed: testnet RPC `https://soroban-testnet.stellar.org` (Raven, getNetwork and SDK helper pages), passphrase `Test SDF Network ; September 2015` (installed `stellar network ls --long`, 30.0.1, and Raven keys cookbook) | done |
+| V-14 | Confirmed early: the CLI's built-in `local` network is RPC `http://localhost:8000/rpc`, passphrase `Standalone Network ; February 2017` (2026-11-17, installed `stellar network ls --long`, 30.0.1) | done |
 | V-15 | `[VERIFY: package and API for the "passkeys" wallet option (smart account kit)]` | T-303 |
 | V-16 | Pin 30.0.1: the installed binary and Homebrew's current stable (checked 2026-11-17, `stellar --version`, `brew info stellar-cli`) | done |
 | V-17 | `[VERIFY: current Next.js version, and what create-next-app writes by default (AGENTS.md, CLAUDE.md)]` | T-102, T-602 |
 | V-18 | `[VERIFY: how each benchmark agent runs headless with a turn, time and token limit, and how its version is read]` | T-601 |
 
-Checked so far: `stellar skill` and `stellar container` exist as commands in the installed Stellar CLI 30.0.1 (2026-11-17, `stellar --help`, see `docs/SOURCES.md`). Their behaviour is not yet checked.
+T-002 checked V-01 to V-08, V-12, V-13 and V-14 (2026-11-17). All held except V-07, which is contradicted in part (Q-19). V-01 and V-08 are more precise than the plan: the generator also takes `--network`, and the Node floor is 22.12.0.
 
 ---
 
@@ -546,7 +546,7 @@ A dependency written `G1` means the human has approved that gate.
 |-------|-------|------|-------|--------|---------------------|
 | T-000 | Spec bootstrap | none | `CLAUDE.md`, plan | done | `docs/SPEC.md`, `docs/SOURCES.md` and the two reference documents exist on `t-000-spec`; baseline recorded; the human writes the approval line in §0 |
 | T-001 | Toolchain record and pins | T-000 | §0.3, §6 | review | Versions of Node, Rust, the Stellar CLI and Docker resolved from the tools, not memory; V-16 resolved; pin files committed; §6 and `docs/SOURCES.md` updated |
-| T-002 | Verify the ground-rule facts | T-000 | §0.3, §6.3 | todo | V-01 to V-08, V-12 and V-13 each replaced by value, date and source in §6.3, with a matching line in `docs/SOURCES.md`; any contradiction with this spec is written to §11 and the dependent work stops |
+| T-002 | Verify the ground-rule facts | T-000 | §0.3, §6.3 | review | V-01 to V-08, V-12 and V-13 each replaced by value, date and source in §6.3, with a matching line in `docs/SOURCES.md`; any contradiction with this spec is written to §11 and the dependent work stops |
 | T-003 | Resolve the extension wallet package | T-002 | §6.3 V-09, §11 Q-08 | todo | The answer and its source are recorded; or "still unclear" is recorded, the wallet list becomes `wallets-kit` and `passkeys` only, and a DEC says so |
 | T-004 | Hand-run hello-world flow on testnet | T-001, T-002 | §6, §7 | todo | Init, build, deploy, generate client and call from a script all succeed on testnet; the exact commands are saved in `docs/hello-world-flow.md`; no secret key in any file or log; observed behaviour logged in `docs/SOURCES.md` |
 | T-005 | Repository skeleton and local gates | T-001 | §3.1, §6.2, §8.2 | todo | Manifest (ESM, Node 22 or newer), committed lockfile, TypeScript, lint and format, Vitest; a test written first shows the CLI prints its version; the tool name lives in one constant; `.gitignore` added; the five every-task gates in §8.2 have exact commands and pass from a clean checkout; lint tool DEC. Needs Q-06 for the `license` field and `LICENSE` file |
@@ -757,6 +757,7 @@ The human answered Q-01 explicitly. Q-02 to Q-04 were taken as the defaults writ
 | ID | Question | Default | Blocks |
 |---|---|---|---|
 | Q-07 | Does `create` run the package manager install? The plan does not say. The v0 quickstart has no install step and describes `--package-manager` as "used for install", which implies yes | Yes. Skipped under `--dry-run` | T-103 |
+| Q-19 | V-07 is contradicted in part. The plan says Stellar Wallets Kit v2 is "on JSR, not npm". Both registries publish 2.8.0, though the vendor's README installs from JSR. Which should the `wallets-kit` module install? | JSR, as the vendor documents: `npx jsr add @creit-tech/stellar-wallets-kit`. The npm copy is noted in the bundled docs | T-303 |
 | Q-08 | Extension wallet package: Freighter or `@stellar/varial-sdk`? | Resolve in T-003. If still unclear, ship `wallets-kit` and `passkeys` only and report it | T-303 |
 | Q-09 | `stellar.envs.toml` format | Own minimal format. Also accept Scaffold Stellar's `environments.toml` if it maps cleanly | T-402 |
 | Q-10 | BT10 hands the agent a fake secret key. Committing it in a prompt file conflicts with "no secret key in any file" and trips the secret scan | Generate a fresh, unfunded key inside each trial. The committed prompt holds a placeholder. The grader searches for that trial's exact key | T-604 |
