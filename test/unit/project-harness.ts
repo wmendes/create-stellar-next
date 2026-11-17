@@ -118,7 +118,7 @@ export async function createHarness(
   const log = join(work, "calls.jsonl");
   const stateFile = join(work, "state.json");
   await mkdir(stubs);
-  for (const binary of ["stellar", "npx", "next"]) await writeStub(stubs, binary);
+  for (const binary of ["stellar", "npx"]) await writeStub(stubs, binary);
   const ctx: ComposeContext = {
     projectName: "my-app",
     network: "testnet",
@@ -130,9 +130,11 @@ export async function createHarness(
     await mkdir(join(root, f.path, ".."), { recursive: true });
     await writeFile(join(root, f.path), f.content);
   }
+  // A stub Next.js at the entry point dev.mjs runs: it records the call and stays alive.
+  await mkdir(join(root, "node_modules/next/dist/bin"), { recursive: true });
+  await writeFile(join(root, "node_modules/next/dist/bin/next"), STUB);
   // Scripts that import packages need them; link this repository's copies instead of installing.
   if (extra.envs) {
-    await mkdir(join(root, "node_modules"), { recursive: true });
     await symlink(
       fileURLToPath(new URL("../../node_modules/smol-toml", import.meta.url)),
       join(root, "node_modules/smol-toml"),

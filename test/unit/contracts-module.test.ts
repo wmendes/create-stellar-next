@@ -131,3 +131,14 @@ describe("home page (T-204)", () => {
     expect(page("none")).not.toContain("@/lib/contracts");
   });
 });
+
+describe("home page error message", () => {
+  const c = { ...ctx, contracts: "hello-world" };
+  const page =
+    compose(modulesFor(c), c).files.find((f) => f.path === "app/page.tsx")?.content ?? "";
+
+  it("never shows an empty reason, and names the RPC endpoint it tried", () => {
+    expect(page).toContain("stellar.rpcUrl");
+    expect(page).toMatch(/\|\| String\(error\)/);
+  });
+});

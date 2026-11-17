@@ -8,7 +8,9 @@ async function readGreeting(): Promise<{ greeting: string } | { error: string }>
     const { result } = await helloWorld().hello({ to: "Stellar" });
     return { greeting: result.join(" ") };
   } catch (error) {
-    return { error: error instanceof Error ? error.message : String(error) };
+    // Some network errors arrive with an empty message; fall back to their text, and say where we called.
+    const reason = (error instanceof Error && error.message) || String(error) || "unknown error";
+    return { error: `${reason} (RPC: ${stellar.rpcUrl ?? "not set"})` };
   }
 }
 
