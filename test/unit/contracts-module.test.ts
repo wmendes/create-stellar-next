@@ -119,3 +119,22 @@ describe("create --contracts hello-world", () => {
     expect(r.stderr).toContain("not built yet");
   });
 });
+
+describe("home page (T-204)", () => {
+  const page = (contracts: "hello-world" | "none") => {
+    const c = { ...ctx, contracts };
+    return compose(modulesFor(c), c).files.find((f) => f.path === "app/page.tsx")?.content ?? "";
+  };
+
+  it("calls the hello_world contract at request time, with no wallet, when contracts exist", () => {
+    const content = page("hello-world");
+    expect(content).toContain('from "@/lib/contracts"');
+    expect(content).toContain("await connection()");
+    expect(content).toContain('data-testid="greeting"');
+    expect(content).not.toMatch(/wallet/i);
+  });
+
+  it("makes no contract call without contracts", () => {
+    expect(page("none")).not.toContain("@/lib/contracts");
+  });
+});

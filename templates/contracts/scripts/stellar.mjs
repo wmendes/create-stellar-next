@@ -157,6 +157,7 @@ export function deploy(config, contract, { onlyIfChanged, confirmMainnet }) {
     );
     if (deployed === sha256(contract.wasm)) {
       console.log(`✓ ${contract.name} is unchanged on ${config.network}, skipping deploy.`);
+      recordId(config.network, contract.name, { alias, id: aliasId(config, alias) });
       return;
     }
   }
@@ -166,10 +167,13 @@ export function deploy(config, contract, { onlyIfChanged, confirmMainnet }) {
     );
   }
   run("stellar", deployArgs(config, contract, alias));
-  const id = run("stellar", ["contract", "alias", "show", alias, ...config.networkArgs], {
+  recordId(config.network, contract.name, { alias, id: aliasId(config, alias) });
+}
+
+function aliasId(config, alias) {
+  return run("stellar", ["contract", "alias", "show", alias, ...config.networkArgs], {
     capture: true,
   });
-  recordId(config.network, contract.name, { alias, id });
 }
 
 function recordId(network, name, entry) {
@@ -193,21 +197,27 @@ function recordId(network, name, entry) {
     writeFileSync(IDS_FILE, text);
 }
 
-/** Generate the typed client from the local Wasm with the SDK's generator. */
+/**
+ * Generate the typed client from the local Wasm with the SDK's generator, then compile it with this
+ * project's TypeScript, as the Stellar docs do, so the app imports plain JavaScript from dist/.
+ */
 export function bindings(contract) {
-  if (!existsSync(contract.wasm))
+  if (!existsSync(contract.wasm)) {
     throw new StepError(`${contract.wasm} is missing. Run the contracts:build script first.`);
+  }
+  const out = `packages/${contract.name}`;
   run("npx", [
     "@stellar/stellar-sdk",
     "generate",
     "--wasm",
     contract.wasm,
     "--output-dir",
-    `packages/${contract.name}`,
+    out,
     "--contract-name",
     contract.name,
     "--overwrite",
   ]);
+  run("npx", ["tsc", "-p", `${out}/tsconfig.json`]);
 }
 
 /** Run a script's steps and turn a StepError into a message and exit code 1. */

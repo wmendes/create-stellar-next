@@ -1,9 +1,14 @@
 // Runs every check this project has. Passing it is the definition of done.
 // Plain Node: read it, change it, or run each command yourself.
 import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 
-if (existsSync("contracts/Cargo.toml") && !existsSync("packages/contract-ids.json")) {
+const clientsMissing =
+  !existsSync("packages/contract-ids.json") ||
+  readdirSync("packages", { withFileTypes: true }).some(
+    (e) => e.isDirectory() && !existsSync(`packages/${e.name}/dist/index.js`),
+  );
+if (existsSync("contracts/Cargo.toml") && clientsMissing) {
   console.error(
     "✗ The generated contract clients in packages/ are missing. Run the setup script first (npm run setup).",
   );

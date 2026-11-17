@@ -47,6 +47,10 @@ if (name === "stellar") {
   }
   else if (cmd === "contract alias") { const d = s.deployed[args[3]]; if (!d) fail("alias not found"); process.stdout.write(d.id + "\n"); }
   else fail("stub: unexpected stellar " + args.join(" "));
+} else if (name === "npx" && args[0] === "tsc") {
+  const dist = path.join(path.dirname(opt("-p")), "dist");
+  fs.mkdirSync(dist, { recursive: true });
+  fs.writeFileSync(path.join(dist, "index.js"), "export {};\n");
 } else if (name === "npx") {
   const out = opt("--output-dir");
   fs.mkdirSync(path.join(out, "src"), { recursive: true });
@@ -153,7 +157,9 @@ describe("setup", () => {
       "stellar contract deploy --wasm contracts/target/wasm32v1-none/release/hello_world.wasm --source-account dev --network testnet --alias my-app-hello_world",
       "stellar contract alias show my-app-hello_world --network testnet",
       "npx @stellar/stellar-sdk generate --wasm contracts/target/wasm32v1-none/release/hello_world.wasm --output-dir packages/hello_world --contract-name hello_world --overwrite",
+      "npx tsc -p packages/hello_world/tsconfig.json",
     ]);
+    expect(existsSync(join(root, "packages/hello_world/dist/index.js"))).toBe(true);
     expect(ids()).toEqual({
       testnet: { hello_world: { alias: "my-app-hello_world", id: `C${"1".padStart(55, "A")}` } },
     });
@@ -175,6 +181,15 @@ describe("setup", () => {
     expect(calls().filter((c) => c.startsWith("stellar contract deploy"))).toHaveLength(1);
     expect(calls().filter((c) => c.startsWith("stellar keys generate"))).toHaveLength(1);
     expect(tree()).toBe(before);
+  });
+
+  it("records the ID without redeploying when the contract is live but contract-ids.json is missing", async () => {
+    expect(script("setup.mjs").status).toBe(0);
+    await rm(join(root, "packages/contract-ids.json"));
+    const r = script("setup.mjs");
+    expect(r.status, r.out).toBe(0);
+    expect(calls().filter((c) => c.startsWith("stellar contract deploy"))).toHaveLength(1);
+    expect(ids().testnet.hello_world.id).toBe(`C${"1".padStart(55, "A")}`);
   });
 
   it("redeploys when the contract changed", () => {
