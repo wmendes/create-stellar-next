@@ -131,6 +131,26 @@ describe("findExecutable", () => {
     expect(found?.toLowerCase()).toBe(join(bin, "npm.cmd").toLowerCase());
   });
 
+  it("on Windows, skips the extensionless shell script Node ships beside npm.cmd", async () => {
+    const bin = join(dir, "nodejs");
+    await mkdir(bin);
+    for (const f of ["npm", "npm.cmd", "npm.ps1"]) await writeFile(join(bin, f), "x\n");
+    const found = findExecutable("npm", { PATH: bin, PATHEXT: ".COM;.EXE;.BAT;.CMD" }, "win32");
+    expect(found?.toLowerCase()).toBe(join(bin, "npm.cmd").toLowerCase());
+  });
+
+  it("on Windows, accepts a name that already has a PATHEXT extension", async () => {
+    const bin = join(dir, "tools");
+    await mkdir(bin);
+    await writeFile(join(bin, "stellar.exe"), "x\n");
+    const found = findExecutable(
+      "stellar.exe",
+      { PATH: bin, PATHEXT: ".COM;.EXE;.BAT;.CMD" },
+      "win32",
+    );
+    expect(found?.toLowerCase()).toBe(join(bin, "stellar.exe").toLowerCase());
+  });
+
   it("returns undefined when the binary is not on PATH", () => {
     expect(findExecutable("stellar", { PATH: dir }, process.platform)).toBeUndefined();
   });
