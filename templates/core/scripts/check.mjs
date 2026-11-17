@@ -27,7 +27,7 @@ if (existsSync("lib/contracts.ts") && clientsMissing) {
 
 const steps = [
   { name: "Typecheck", command: "next typegen && tsc --noEmit" },
-  { name: "Lint", command: "eslint" },
+  { name: "Lint", command: 'eslint --ignore-pattern "packages/**"' },
 ];
 if (existsSync("contracts/Cargo.toml")) {
   steps.push({ name: "Contract tests", command: "cargo test", cwd: "contracts" });

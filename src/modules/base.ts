@@ -1,7 +1,9 @@
 import type { Module } from "../lib/compose.ts";
-import { MIN_NODE, olderThan } from "../lib/versions.ts";
 
-/** Versions are those create-next-app 16.4.6 resolved on 2026-11-17 (docs/SOURCES.md). */
+/**
+ * The Next.js scaffold `create` writes. Versions are those create-next-app 16.4.6 resolved on
+ * 2026-11-17 (docs/SOURCES.md). `add` never applies it: a project the tool did not create keeps its own.
+ */
 export const base: Module = {
   id: "base",
   templates: ["base"],
@@ -14,22 +16,8 @@ export const base: Module = {
     build: { command: "next build", description: "Production build" },
     start: { command: "next start", description: "Serve the production build" },
     lint: { command: "eslint", description: "ESLint with the Next.js rules" },
-    typecheck: {
-      command: "next typegen && tsc --noEmit",
-      description: "Generate route types, then run the TypeScript compiler",
-    },
-    check: {
-      command: "node scripts/check.mjs",
-      description:
-        "Typecheck, lint, contract tests when `contracts/` exists, and `next build`. The definition of done",
-    },
   },
-  layout: [
-    "`app/`: Next.js App Router pages",
-    "`lib/stellar.ts`: network settings, read from `.env`",
-    "`scripts/`: plain Node scripts behind the npm scripts",
-    "`.env`: configuration. `.env.example` lists every key. Identity names only, never secret keys",
-  ],
+  layout: ["`app/`: Next.js App Router pages"],
   dependencies: { next: "16.4.6", react: "19.3.0", "react-dom": "19.3.0" },
   devDependencies: {
     "@types/node": "22.20.5",
@@ -39,28 +27,6 @@ export const base: Module = {
     "eslint-config-next": "16.4.6",
     typescript: "5.9.3",
   },
-  env: [
-    {
-      key: "NEXT_PUBLIC_STELLAR_NETWORK",
-      comment: "Stellar network: testnet, mainnet or local.",
-      value: (ctx) => ctx.network,
-    },
-    {
-      key: "NEXT_PUBLIC_STELLAR_RPC_URL",
-      comment:
-        "Stellar RPC endpoint for that network. No mainnet default is shipped: set your provider's URL.",
-      value: (ctx) => (ctx.network === "testnet" ? "https://soroban-testnet.stellar.org" : ""),
-    },
-  ],
-  detect: (project) => project.exists,
-  doctor: [
-    {
-      id: "node",
-      description: "Node.js 22.12.0 or newer",
-      command: "node",
-      args: ["--version"],
-      verify: (out) => (olderThan(out.trim(), MIN_NODE) ? `found ${out.trim()}` : undefined),
-      fix: "Install Node.js 22.12.0 or newer from https://nodejs.org",
-    },
-  ],
+  // Projects `create` made carry scripts/dev.mjs; projects the tool did not create do not.
+  detect: (project) => project.read("scripts/dev.mjs") !== undefined,
 };

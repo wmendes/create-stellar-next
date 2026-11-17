@@ -585,7 +585,7 @@ A dependency written `G1` means the human has approved that gate.
 | T-301 | `doctor` | G2 | §5.1, INV-07, INV-08, INV-12 | review | Checks come from the module definitions; `--json` validates against its schema; a deliberately removed prerequisite gives exit `3` and the fixing command; identity existence and funding are checked |
 | T-302 | `add contract` and `add local` | T-301 | INV-05, INV-10, INV-11, V-05, V-14 | review | Each is idempotent (second run, no diff); each refuses an edited file without `--force`; `network:start` exists only with local |
 | T-303 | `add wallet` for each verified option | T-302, T-003 | §5.5, V-07, V-09, V-15 | review (wallets-kit, extension; passkeys moved to T-305) | Each option implements `connect`, `disconnect`, `getAddress`, `signTransaction` in `lib/wallet/index.ts`; rerunning with another option swaps the adapter without touching pages; idempotent; `create --wallet` uses the same module |
-| T-304 | `add` in a project the tool did not create | T-303 | §5.1, INV-10 | todo | A fresh `create-next-app` project plus `add` passes `check`; idempotency holds there too |
+| T-304 | `add` in a project the tool did not create | T-303 | §5.1, INV-10 | review | A fresh `create-next-app` project plus `add` passes `check`; idempotency holds there too |
 | T-305 | `--wallet passkeys` and `add wallet --wallet passkeys` | T-303 | §5.5, V-15, Q-22 | blocked: Q-22 | Passkey smart wallet behind the same `lib/wallet` interface, or a recorded decision to drop the option |
 | T-401 | Registry module | G3 | INV-05, V-10 | todo | Commands verified first; `registry:publish` and `registry:deploy` wrap `stellar registry`; `contracts:deploy` is unchanged; `doctor` checks for the registry CLI; no registry file when the flag is off |
 | T-402 | Envs module | G3 | §5.6, INV-03, INV-05, INV-10, INV-14 | todo | Parses `stellar.envs.toml`; plans the stock commands; prints each, then runs it; `envs:apply --dry-run` matches a stored snapshot; `envs:apply` on a local network deploys the declared contract; never starts Docker itself; no envs file when the flag is off; TOML parser DEC |
@@ -911,6 +911,16 @@ Decision:
 - `passkeys` is not built (Q-22, T-305).
 Alternatives: JSR without MetaMask, or JSR plus an npm alias (both offered; the human chose npm). A React context provider (rejected: four async functions are enough, and work outside React).
 Consequences: §3.4's `lib/wallet/`, plus `components/`. INV-05 holds: no wallet file without `--wallet`. The npm kit adds about 390 packages to a project that chooses it.
+
+### DEC-024: `add` in projects the tool did not create; the core module (2026-11-17, T-304)
+Context: `add` must work in a plain `create-next-app` project and leave it passing `check`. The base module mixed the Next.js scaffold with the Stellar layer, so it could not apply there.
+Decision:
+- `base` is now the scaffold only: layout, ESLint and TypeScript configs, `.gitignore`, `scripts/dev.mjs`, the `dev`/`build`/`start`/`lint` scripts and the Next.js dependencies. `create` uses it and `add` never applies it. It is detected by `scripts/dev.mjs`, so the `AGENTS.md` block of a project `create` made keeps listing its scripts.
+- `core` is the Stellar layer: `lib/stellar.ts`, `scripts/check.mjs`, `AGENTS.md`, `CLAUDE.md`, the `typecheck` and `check` scripts, the network keys in `.env`, and the Node doctor check. It is detected by `lib/stellar.ts`. `add` applies `core` along with the first module in a project that lacks it.
+- In a project the tool did not create, `add` leaves the user's `dev` script and every scaffold file alone, keeps Next's `AGENTS.md` block and appends its own, and writes `CLAUDE.md` only when there is none. The contracts module now also adds `contracts:watch`, because only projects `create` made start the watcher from `dev`.
+- `check` runs `eslint --ignore-pattern "packages/**"`, so generated clients never fail a project's own lint rules, whatever its ESLint config.
+Alternatives: require `create` and refuse foreign projects (rejected: §5.1 requires `add` to work there). Rewrite the foreign project's `dev` to start the watcher (rejected: changes a script the user owns).
+Consequences: §3.4 and §5.5. G3's second criterion verified for real: `npx create-next-app@16.4.6`, then `add contract` and `add wallet --wallet extension`, then `setup` on the local network and `check` (all four steps passed); both `add` commands again left `git status` empty. The project e2e still passes for both styles.
 
 ## §11 Open questions
 

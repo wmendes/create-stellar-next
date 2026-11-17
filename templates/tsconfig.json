@@ -13,7 +13,7 @@
     "types": ["node"],
     "paths": {
       "@/packages/*": ["./_typecheck/packages/*"],
-      "@/*": ["./base/*", "./contracts/*", "./wallet-wallets-kit/*", "./wallet-ui/*"]
+      "@/*": ["./core/*", "./base/*", "./contracts/*", "./wallet-wallets-kit/*", "./wallet-ui/*"]
     },
     "resolveJsonModule": true
   },

@@ -10,6 +10,7 @@ import { INSTALL_HINTS, type Runner } from "../lib/runner.ts";
 import { applyPlan, type FileSpec, planWrites, type WriteAction } from "../lib/writer.ts";
 import { contractClient } from "../modules/contract-client.ts";
 import { contracts } from "../modules/contracts.ts";
+import { core } from "../modules/core.ts";
 import { ALL_MODULES } from "../modules/index.ts";
 import { local } from "../modules/local.ts";
 import { WALLETS } from "../modules/wallet.ts";
@@ -38,7 +39,10 @@ export interface AddResult {
   error?: AddError;
 }
 
-const GENERATED = new Set(["package.json", ".env", ".env.example"]);
+/** Files `add` merges instead of writing whole. */
+const MERGED = new Set(["package.json", ".env", ".env.example", "AGENTS.md"]);
+/** Files `add` writes only when the project has none. */
+const CREATE_ONLY = new Set(["CLAUDE.md"]);
 
 function read(root: string, path: string): string | undefined {
   const file = join(root, path);
@@ -88,7 +92,9 @@ export async function add(options: AddOptions): Promise<AddResult> {
     local: options.target === "local",
     wallet: options.wallet,
   };
-  const parts = compose([module], ctx);
+  // A project the tool did not create gets the Stellar core along with its first module.
+  const applying = detected.includes(core) || module === core ? [module] : [core, module];
+  const parts = compose(applying, ctx);
   const pm = options.packageManager;
 
   const needed = [...new Set([...parts.requires, ...parts.commands.map((c) => c.command), pm])];
@@ -108,9 +114,10 @@ export async function add(options: AddOptions): Promise<AddResult> {
   const canonical = (modules: Module[]) => ALL_MODULES.filter((m) => modules.includes(m));
   // A module replaces any other module of its group, such as one wallet for another.
   const kept = detected.filter((m) => !module.group || m.group !== module.group);
-  const withModule = canonical([...kept, module]);
+  const withModule = canonical([...kept, ...applying]);
   const agentsOf = (modules: Module[]) =>
-    compose(modules, ctx).files.find((f) => f.path === "AGENTS.md")?.content ?? "";
+    compose(canonical([core, ...modules]), ctx).files.find((f) => f.path === "AGENTS.md")
+      ?.content ?? "";
   const previous = extractBlock(agentsOf(canonical(detected))) ?? "";
   const nextFull = agentsOf(withModule);
   const agents = mergeAgents(
@@ -135,7 +142,12 @@ export async function add(options: AddOptions): Promise<AddResult> {
     { path: ".env.example", content: envText(".env.example") },
     { path: "AGENTS.md", content: agents.content },
   ].filter((f) => f.content !== "");
-  const files = [...parts.files.filter((f) => !GENERATED.has(f.path)), ...merged];
+  const files = [
+    ...parts.files.filter(
+      (f) => !MERGED.has(f.path) && !(CREATE_ONLY.has(f.path) && read(root, f.path) !== undefined),
+    ),
+    ...merged,
+  ];
   const plan = await planWrites(root, files, {
     force,
     merged: new Set(merged.map((f) => f.path)),

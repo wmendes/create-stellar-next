@@ -11,7 +11,7 @@ import {
 } from "./lib/package-manager.ts";
 import { createRunner, type Runner, type RunnerOptions } from "./lib/runner.ts";
 import type { WriteAction } from "./lib/writer.ts";
-import { base } from "./modules/base.ts";
+import { core } from "./modules/core.ts";
 import { CONTRACT_ID } from "./modules/index.ts";
 import { doctor } from "./commands/doctor.ts";
 import { MIN_NODE, olderThan } from "./lib/versions.ts";
@@ -221,7 +221,7 @@ async function runCreate(
 
   const nodeVersion = env.nodeVersion ?? process.versions.node;
   if (olderThan(nodeVersion, MIN_NODE)) {
-    const nodeFix = base.doctor?.find((d) => d.id === "node")?.fix;
+    const nodeFix = core.doctor?.find((d) => d.id === "node")?.fix;
     const fix = typeof nodeFix === "string" ? nodeFix : `Install Node.js ${MIN_NODE}+`;
     return fail(
       ExitCode.MissingPrerequisite,

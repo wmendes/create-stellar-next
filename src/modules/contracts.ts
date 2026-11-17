@@ -52,6 +52,11 @@ export const contracts: Module = {
       command: "cargo test --manifest-path contracts/Cargo.toml",
       description: "Run the contracts' Rust unit tests",
     },
+    "contracts:watch": {
+      command: "node scripts/watch-contracts.mjs",
+      description:
+        "Rebuild, redeploy and regenerate clients when a contract changes (`dev` starts it too, in projects this tool created)",
+    },
     "contracts:deploy": {
       command: "node scripts/deploy.mjs",
       description:

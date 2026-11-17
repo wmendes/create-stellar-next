@@ -1,6 +1,7 @@
 import type { ComposeContext, Module } from "../lib/compose.ts";
 import { base } from "./base.ts";
 import { contractClient } from "./contract-client.ts";
+import { core } from "./core.ts";
 import { contracts } from "./contracts.ts";
 import { local } from "./local.ts";
 import { WALLETS, walletExtension, walletsKit } from "./wallet.ts";
@@ -9,6 +10,7 @@ import { styleNone, styleTailwind } from "./style.ts";
 
 export const ALL_MODULES: readonly Module[] = [
   base,
+  core,
   styleTailwind,
   styleNone,
   pagePlain,
@@ -28,6 +30,7 @@ export function modulesFor(ctx: ComposeContext): Module[] {
   const withContracts = ctx.contracts === "hello-world";
   return [
     base,
+    core,
     ctx.style === "tailwind" ? styleTailwind : styleNone,
     withContracts ? pageHello : pagePlain,
     ...(withContracts ? [contracts] : []),
