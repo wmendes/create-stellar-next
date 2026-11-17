@@ -619,7 +619,7 @@ A dependency written `G1` means the human has approved that gate.
 | T-609 | Results tables and failure labels | T-607, T-608 | §2, §9.3.5, §9.4 | todo | A script builds the `REPORT.md` tables from raw data, with 95% Wilson intervals; each failure carries one category; a missed threshold means fix the tool, rerun the full matrix and report both runs |
 | T-701 | README, migration note, changelog | G6 | §2 | review | Every claim is allowed by §2 and its evidence exists; the migration note for Scaffold Stellar users is sourced |
 | T-702 | Packed tarball e2e | T-701 | §8.3 G7 | review | `npm pack`; the tarball passes the G2 end-to-end test; nothing is published |
-| T-703 | Final `REPORT.md` | T-609, T-702 | §9.4, §10, §11 | todo | Seven sections in the order of §9.4; deviations taken from §10; open questions from §11 |
+| T-703 | Final `REPORT.md` | T-609, T-702 | §9.4, §10, §11 | review | Seven sections in the order of §9.4; deviations taken from §10; open questions from §11 |
 
 ### §9.3 Benchmark definition (M6)
 
@@ -1007,6 +1007,12 @@ Decision: `test/e2e/pack.mjs` runs `npm pack` into a temp directory, installs th
 Alternatives: `npx <tarball>` (rejected: npx caches by name and version, so a rerun could test a stale copy).
 Consequences: §8.2 (Pack gate). Verified: `create-stellar-next-0.0.0.tgz` passed the contract loop on the local network, with Playwright reading "Hello Stellar". This also confirms the shipped file list (templates, schemas, the `_gitignore` rename).
 
+### DEC-035: REPORT.md without benchmark results (2026-11-17, T-703)
+Context: `REPORT.md` has a fixed seven-section order (§9.4), five sections of which hold benchmark results. The benchmark did not run (DEC-032).
+Decision: keep the seven sections in order. Sections 1 to 6 say plainly that nothing was measured, and give no estimate in place of a measurement. Section 7 lists what exists with its evidence, every deviation from the plan with its DEC or Q, the problems real runs found, the open questions with their defaults, and next steps. `REPORT.md` is under the claims test. §11 was cleaned up: the stale open rows for Q-01 to Q-04 were removed, and Q-08 and Q-13 were updated.
+Alternatives: omit the empty benchmark sections (rejected: the plan fixes the layout, and their absence would hide that nothing was measured).
+Consequences: §9.4. When the benchmark runs, sections 1 to 6 are replaced by script-generated tables (T-609).
+
 ## §11 Open questions
 
 Each has a default. "Blocks" names the first task that cannot finish without an answer. An answer of "use the default" is enough.
@@ -1024,23 +1030,15 @@ Each has a default. "Blocks" names the first task that cannot finish without an 
 | Q-21 | Default applied in T-501 (DEC-028): the bundled guides are copied into each project as `docs/stellar/`, owned like other generated files |
 | Q-11 | Skipped for now by the human (2026-11-17): no benchmark agents, access or budget yet; M6 does not start |
 | Q-05 (2026-11-17) | Asked again: the human chose "not yet". CI stays blocked |
+| Q-13 | Answered by events: the human started Docker before M2; the local network container ran from T-207 on |
 | Q-23 | The human installed `stellar-scaffold` 0.0.34 (latest) on 2026-11-17; Arm B uses it |
 | Q-09 | Default applied: the project's own format (DEC-026). Scaffold Stellar's configuration is not read because it does not map cleanly (DEC-027) |
-| Q-08 | Resolved from the docs in T-003, not by the human: `@stellar/varial-sdk`, the renamed `@stellar/freighter-api` (V-09). All three wallet options stay in scope |
+| Q-08 | Resolved from the docs in T-003, not by the human: `@stellar/varial-sdk`, the renamed `@stellar/freighter-api` (V-09). Passkeys were later dropped (DEC-025), so two wallet options ship |
 | Q-04 | Default taken with the approval: (a) installed CLI output counts as installed source; (b) a fact Raven cannot ground goes to the human |
 
 The human answered Q-01 explicitly. Q-02 to Q-04 were taken as the defaults written in the approved spec because the human said "proceed" without changing them. The human can reverse any of them.
 
-### Needed before M0 can finish
-
-| ID | Question | Default | Blocks |
-|---|---|---|---|
-| Q-01 | Is this spec approved? Please check the invariants in §4 in particular: they are my wording of the plan's rules | None. Approval is the line in §0 | Everything after T-000 |
-| Q-02 | The plan lists `docs/verified-facts.md` as a deliverable shipped with the bundled docs. `CLAUDE.md` requires every checked fact in `docs/SOURCES.md`. May `docs/SOURCES.md` replace it, and should it ship in the package? | `docs/SOURCES.md` replaces it and ships. `docs/SPEC.md` and `docs/reference/` do not ship | T-002 |
-| Q-03 | May `PROGRESS.md` be dropped in favour of §9.2 and §10? | Yes, dropped | None |
-| Q-04 | Sources for Stellar facts. The plan says to run `stellar skill` and `stellar --help` and to read two `llms.txt` URLs. `CLAUDE.md` says Stellar information comes from Raven only. (a) Does output of the installed CLI count as "installed source"? (b) If Raven cannot ground a fact, may I read the official URLs the plan lists, or does it go to you? | (a) Yes. (b) It goes to you, as `CLAUDE.md` says | T-002 |
-
-### Needed later
+### Still open
 
 | ID | Question | Default | Blocks |
 |---|---|---|---|
@@ -1049,7 +1047,6 @@ The human answered Q-01 explicitly. Q-02 to Q-04 were taken as the defaults writ
 | Q-19 (answered 2026-11-17, DEC-023) | V-07 is contradicted in part. The plan says Stellar Wallets Kit v2 is "on JSR, not npm". Both registries publish 2.8.0, though the vendor's README installs from JSR. Which should the `wallets-kit` module install? | JSR, as the vendor documents: `npx jsr add @creit-tech/stellar-wallets-kit`. The npm copy is noted in the bundled docs | T-303 |
 | Q-10 | BT10 hands the agent a fake secret key. Committing it in a prompt file conflicts with "no secret key in any file" and trips the secret scan | Generate a fresh, unfunded key inside each trial. The committed prompt holds a placeholder. The grader searches for that trial's exact key | T-604 |
 | Q-12 | Do you confirm the four thresholds in §9.3.6? | Reported as "proposed" | T-609 |
-| Q-13 | The Docker daemon is not running on this machine. Local-network work starts in M2 | You start Docker when M2 begins. The agent does not start it | T-207 |
 | Q-14 | Platform coverage. The machine is macOS arm64. Windows and Linux are covered by CI only, and benchmark containers are Linux only `[INFERRED]`, so Part A and Part B numbers describe Linux | Accepted, and stated in `REPORT.md` | T-105, T-607 |
 | Q-15 | Is the freeze schedule in §5.8 right? It is my inference | As in §5.8 | G1 |
 | Q-16 | Name. The plan builds as `create-stellar-next`; this directory is `create-stellar-app`. The v0 documentation also leaves the owning GitHub organisation open | `create-stellar-next`, held in one constant | None |

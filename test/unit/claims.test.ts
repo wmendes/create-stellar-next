@@ -16,6 +16,7 @@ const PUBLIC = [
   "CHANGELOG.md",
   "docs/migrating-from-scaffold-stellar.md",
   "docs/llms.txt",
+  "REPORT.md",
 ];
 
 describe.each(PUBLIC)("%s (claims policy, SPEC §2)", (path) => {
