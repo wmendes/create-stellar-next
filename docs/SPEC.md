@@ -529,7 +529,9 @@ The human reviews at each. A gate that cannot pass after three distinct attempts
 
 ### §9.1 Milestones
 
-Current milestone: **M0**. A milestone does not start while the previous gate is failing.
+Current milestone: **M1**. A milestone does not start while the previous gate is failing.
+
+Gate approvals: G0 approved by the human on 2026-11-17 ("Reviewed. Approved. Resume"), with CI not yet run because no remote exists. See DEC-008.
 
 | Milestone | Plan phase | Gate |
 |---|---|---|
@@ -551,11 +553,11 @@ A dependency written `G1` means the human has approved that gate.
 | ID    | Title | Deps | Reads | Status | Acceptance criteria |
 |-------|-------|------|-------|--------|---------------------|
 | T-000 | Spec bootstrap | none | `CLAUDE.md`, plan | done | `docs/SPEC.md`, `docs/SOURCES.md` and the two reference documents exist on `t-000-spec`; baseline recorded; the human writes the approval line in §0 |
-| T-001 | Toolchain record and pins | T-000 | §0.3, §6 | review | Versions of Node, Rust, the Stellar CLI and Docker resolved from the tools, not memory; V-16 resolved; pin files committed; §6 and `docs/SOURCES.md` updated |
-| T-002 | Verify the ground-rule facts | T-000 | §0.3, §6.3 | review | V-01 to V-08, V-12 and V-13 each replaced by value, date and source in §6.3, with a matching line in `docs/SOURCES.md`; any contradiction with this spec is written to §11 and the dependent work stops |
-| T-003 | Resolve the extension wallet package | T-002 | §6.3 V-09, §11 Q-08 | review | The answer and its source are recorded; or "still unclear" is recorded, the wallet list becomes `wallets-kit` and `passkeys` only, and a DEC says so |
-| T-004 | Hand-run hello-world flow on testnet | T-001, T-002 | §6, §7 | review | Init, build, deploy, generate client and call from a script all succeed on testnet; the exact commands are saved in `docs/hello-world-flow.md`; no secret key in any file or log; observed behaviour logged in `docs/SOURCES.md` |
-| T-005 | Repository skeleton and local gates | T-001 | §3.1, §6.2, §8.2 | review | Manifest (ESM, Node 22 or newer), committed lockfile, TypeScript, lint and format, Vitest; a test written first shows the CLI prints its version; the tool name lives in one constant; `.gitignore` added; the five every-task gates in §8.2 have exact commands and pass from a clean checkout; lint tool DEC. Needs Q-06 for the `license` field and `LICENSE` file |
+| T-001 | Toolchain record and pins | T-000 | §0.3, §6 | done | Versions of Node, Rust, the Stellar CLI and Docker resolved from the tools, not memory; V-16 resolved; pin files committed; §6 and `docs/SOURCES.md` updated |
+| T-002 | Verify the ground-rule facts | T-000 | §0.3, §6.3 | done | V-01 to V-08, V-12 and V-13 each replaced by value, date and source in §6.3, with a matching line in `docs/SOURCES.md`; any contradiction with this spec is written to §11 and the dependent work stops |
+| T-003 | Resolve the extension wallet package | T-002 | §6.3 V-09, §11 Q-08 | done | The answer and its source are recorded; or "still unclear" is recorded, the wallet list becomes `wallets-kit` and `passkeys` only, and a DEC says so |
+| T-004 | Hand-run hello-world flow on testnet | T-001, T-002 | §6, §7 | done | Init, build, deploy, generate client and call from a script all succeed on testnet; the exact commands are saved in `docs/hello-world-flow.md`; no secret key in any file or log; observed behaviour logged in `docs/SOURCES.md` |
+| T-005 | Repository skeleton and local gates | T-001 | §3.1, §6.2, §8.2 | done | Manifest (ESM, Node 22 or newer), committed lockfile, TypeScript, lint and format, Vitest; a test written first shows the CLI prints its version; the tool name lives in one constant; `.gitignore` added; the five every-task gates in §8.2 have exact commands and pass from a clean checkout; lint tool DEC. Needs Q-06 for the `license` field and `LICENSE` file |
 | T-006 | CI on Linux, macOS and Windows | T-005 | §8, §11 Q-05 | blocked: Q-05, workflow written, not yet run | A GitHub Actions matrix runs every §8.2 every-task gate in locked mode on the three systems and is green. Needs Q-05 |
 | T-101 | File writer with edit detection | G0 | §3.2, §5.4, INV-09, INV-11 | todo | Hashes recorded in `.create-stellar-next.json`; an unchanged file is rewritten without complaint; an edited file is refused without `--force`; dry-run mode writes nothing; property test: writing the same plan twice changes nothing |
 | T-102 | Module format and base module | T-101 | §3.2, §3.4, §3.5, V-17 | todo | A module is data plus files (files, scripts, dependencies, `.env` keys, doctor checks); base template has one page, `lib/stellar.ts`, `.env.example`, `AGENTS.md`, a one-line `CLAUDE.md` and the `check` script; templates lint and typecheck in place; Tailwind by default and `--style none` omits it |
@@ -743,6 +745,12 @@ Context: G0 needs CI on Linux, macOS and Windows running the every-task gates in
 Decision: one GitHub Actions workflow, `.github/workflows/ci.yml`, a `fail-fast: false` matrix over `ubuntu-latest`, `macos-latest` and `windows-latest`, running `npm ci` then the gates in §8.2 and the built CLI's `--version`. Node comes from `.node-version`. Actions are pinned to commit SHAs: `actions/checkout` v7.0.1 (`3d3c42e5…`) and `actions/setup-node` v7.1.0 (`949feb24…`), both resolved from GitHub on 2026-11-17. `.gitattributes` forces LF so Biome's format check gives the same result on Windows. Permissions are read-only. The Rust toolchain and Stellar CLI are not installed yet; T-207 adds them, reading `rust-toolchain.toml` and `.stellar-cli-version`.
 Alternatives: tag-pinned actions (rejected: a tag can move; a SHA cannot). A single Linux job (rejected: the plan requires three systems).
 Consequences: §8.2. The workflow has not run, because no remote exists (Q-05). T-006 stays `blocked` until a run is green.
+
+### DEC-008: G0 approved with the CI criterion deferred (2026-11-17, G0)
+Context: G0 requires CI to be green on three systems. The workflow exists (T-006) but has never run, because there is no remote (Q-05). The human reviewed M0 and approved it.
+Decision: G0 counts as approved, recorded by the agent from the human's message. T-001 to T-005 are `done`, set on the human's approval. T-006 stays `blocked` until its first green run. M1 work proceeds. Every local gate in §8.2 must still pass on each task.
+Alternatives: wait for the remote before starting M1 (not chosen: the human said resume).
+Consequences: until a remote exists, Linux and Windows are untested. Platform-specific failures may surface late, and fixing them becomes the first job once CI runs. M1 branches stack on `t-006-ci` because `main` does not exist yet.
 
 ## §11 Open questions
 
