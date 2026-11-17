@@ -111,13 +111,6 @@ describe("create --contracts hello-world", () => {
     expect(fake.dryRuns).toEqual([true]);
     expect(existsSync(join(cwd, "my-app"))).toBe(false);
   });
-
-  it("still refuses a contract ID until T-206", async () => {
-    const id = `C${"A".repeat(55)}`;
-    const r = await run("my-app", "--yes", "--contracts", id);
-    expect(r.exitCode).toBe(1);
-    expect(r.stderr).toContain("not built yet");
-  });
 });
 
 describe("home page (T-204)", () => {

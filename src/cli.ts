@@ -11,6 +11,7 @@ import {
 import { createRunner, type Runner, type RunnerOptions } from "./lib/runner.ts";
 import type { WriteAction } from "./lib/writer.ts";
 import { base } from "./modules/base.ts";
+import { CONTRACT_ID } from "./modules/index.ts";
 import { TOOL_NAME } from "./name.ts";
 
 export interface CliResult {
@@ -204,12 +205,9 @@ async function runCreate(
 
   // Options from later milestones fail plainly instead of half-working.
   const contracts = values.contracts ?? "hello-world";
-  if (contracts !== "none" && contracts !== "hello-world") {
-    return fail(
-      ExitCode.Failure,
-      "NOT_BUILT",
-      `--contracts ${contracts} is not built yet.`,
-      "Use --contracts hello-world or --contracts none for now; a contract ID arrives in T-206.",
+  if (contracts !== "none" && contracts !== "hello-world" && !CONTRACT_ID.test(contracts)) {
+    return invalid(
+      `--contracts must be hello-world, none, or a contract ID (C followed by 55 characters). Got "${contracts}".`,
     );
   }
   if ((values.wallet ?? "none") !== "none") {

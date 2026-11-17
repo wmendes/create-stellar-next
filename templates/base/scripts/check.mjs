@@ -10,12 +10,15 @@ const env = {
   PATH: `${join("node_modules", ".bin")}${delimiter}${process.env.PATH}`,
 };
 
+// Projects with lib/contracts.ts need their generated clients before they can typecheck.
+const packages = existsSync("packages")
+  ? readdirSync("packages", { withFileTypes: true }).filter((e) => e.isDirectory())
+  : [];
 const clientsMissing =
-  !existsSync("packages/contract-ids.json") ||
-  readdirSync("packages", { withFileTypes: true }).some(
-    (e) => e.isDirectory() && !existsSync(`packages/${e.name}/dist/index.js`),
-  );
-if (existsSync("contracts/Cargo.toml") && clientsMissing) {
+  packages.length === 0 ||
+  packages.some((e) => !existsSync(`packages/${e.name}/dist/index.js`)) ||
+  (existsSync("contracts/Cargo.toml") && !existsSync("packages/contract-ids.json"));
+if (existsSync("lib/contracts.ts") && clientsMissing) {
   console.error(
     "✗ The generated contract clients in packages/ are missing. Run the setup script first (npm run setup).",
   );

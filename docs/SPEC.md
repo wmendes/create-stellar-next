@@ -580,7 +580,7 @@ A dependency written `G1` means the human has approved that gate.
 | T-203 | `setup` script | T-202 | INV-03, INV-04, INV-10, V-01 to V-04, V-12, Q-20 | review | Identity, build, deploy with alias, generate client; adds `contracts:deploy`, `contracts:bindings` and `lib/contracts.ts` (moved from T-202, DEC-015); the app gets each contract ID without reading CLI config at run time; a second run leaves the tree hash unchanged; identities by name only; secret-scan gate added |
 | T-204 | Example page | T-203 | §3.4 | review | The home page shows the hello-world contract's response with no wallet |
 | T-205 | Contract watcher in `dev` | T-203 | §3.4 | review | A change under `contracts/` triggers rebuild, redeploy and regenerate; the watcher is a plain Node script in `scripts/` |
-| T-206 | `--contracts <id>` | T-203 | §5.1 | todo | A typed client only; no Rust workspace and no `contracts/` directory |
+| T-206 | `--contracts <id>` | T-203 | §5.1 | review | A typed client only; no Rust workspace and no `contracts/` directory |
 | T-207 | Contract-loop e2e in CI | T-204, T-006 | §7.3, §8, Q-13 | todo | `create --yes` → `setup` → Playwright reads the contract response; local network container on every PR; testnet nightly with an identity funded per run, no stored secret; `setup` twice leaves the project unchanged |
 | T-301 | `doctor` | G2 | §5.1, INV-07, INV-08, INV-12 | todo | Checks come from the module definitions; `--json` validates against its schema; a deliberately removed prerequisite gives exit `3` and the fixing command; identity existence and funding are checked |
 | T-302 | `add contract` and `add local` | T-301 | INV-05, INV-10, INV-11, V-05, V-14 | todo | Each is idempotent (second run, no diff); each refuses an edited file without `--force`; `network:start` exists only with local |
@@ -856,6 +856,17 @@ Decision:
 - Script tests share a harness (`test/unit/project-harness.ts`) of stub `stellar`, `npx` and `next` binaries. It drops inherited `node_modules/.bin` entries from `PATH`, because `npm test` would otherwise put this repository's real `next` first.
 Alternatives: `chokidar` (rejected: Node's recursive `fs.watch` works on Linux, macOS and Windows on Node 22+, with no dependency in every generated project). `concurrently` to run two processes (rejected: one more dependency for 30 lines of Node).
 Consequences: §3.4's `dev` row holds. Verified for real on testnet: with `node scripts/dev.mjs` running, the page showed "Hi Stellar"; changing the contract to "Hello" made the watcher rebuild, redeploy and regenerate, and the page then showed "Hello Stellar" with no restart. 8 harness tests cover the watcher and `dev`, including target-directory changes, failures, mainnet and a missing `next`.
+
+### DEC-019: `--contracts <id>` and the next steps (2026-11-17, T-206)
+Context: `--contracts <id>` must give a typed client for an already deployed contract, with no Rust workspace.
+Decision:
+- A `contract-client` module, exclusive with the hello-world `contracts` module, owns `lib/contracts.ts` (exporting `contract()`), a self-contained `scripts/setup.mjs`, and the `.env` key `NEXT_PUBLIC_STELLAR_CONTRACT_ID`. The ID is configuration the user chose, so it belongs in `.env` (§3.4), not in a generated file. The home page stays plain, because the tool cannot know which method to call.
+- `create` stays offline. `setup` generates the client from the network with the stock generator (`generate --contract-id … --network … --rpc-url …`, plus `--allow-http` for the local network), then compiles it as in DEC-017. `contracts:bindings` runs the same script. Neither needs Rust or the Stellar CLI, so `create` does not require them.
+- `--contracts` accepts `hello-world`, `none`, or `C` followed by 55 base32 characters; anything else exits 2.
+- Modules declare `next`: scripts to run after install and before `dev`. `create` now prints `setup` before `dev` for both contract kinds; before this, a hello-world project's next steps left out `setup`.
+- `check` stops with "run setup first" in any project with `lib/contracts.ts` whose `packages/` clients are missing or uncompiled.
+Alternatives: generate the client during `create` (rejected: `create` would need the network, unlike every other path). Store the ID in `packages/contract-ids.json` (rejected: that file is generated, and this ID is user input).
+Consequences: §5.1's `--contracts <id>` is built. Verified on testnet against a deployed hello_world contract: create, `setup`, `check`, then a call through the generated client returned "Hello from-id".
 
 ## §11 Open questions
 

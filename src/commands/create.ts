@@ -46,7 +46,8 @@ export async function create(options: CreateOptions): Promise<CreateResult> {
   const root = resolve(options.cwd, options.dir);
   const pm = options.packageManager;
   const cd = options.dir === "." ? [] : [`cd ${options.dir}`];
-  const allSteps = [...cd, installCommand(pm), runCommand(pm, "dev")];
+  let after: string[] = [runCommand(pm, "dev")];
+  const allSteps = () => [...cd, installCommand(pm), ...after];
 
   const ctx: ComposeContext = {
     projectName: basename(root),
@@ -54,7 +55,8 @@ export async function create(options: CreateOptions): Promise<CreateResult> {
     style: options.style,
     contracts: options.contracts,
   };
-  const { files, requires, commands } = compose(modulesFor(ctx), ctx);
+  const { files, requires, commands, next: setupScripts } = compose(modulesFor(ctx), ctx);
+  after = [...setupScripts.map((s) => runCommand(pm, s)), runCommand(pm, "dev")];
 
   // Check every binary before writing, so a missing one leaves nothing behind.
   const needed = [...new Set([...requires, ...commands.map((c) => c.command), pm])];
@@ -101,8 +103,8 @@ export async function create(options: CreateOptions): Promise<CreateResult> {
     fix: `Run \`${installCommand(pm)}\` in ${options.dir} to finish.`,
   });
   if (!install.ok) {
-    return { ok: false, root, files: written.actions, next: allSteps, error: install.error };
+    return { ok: false, root, files: written.actions, next: allSteps(), error: install.error };
   }
-  const next = options.dryRun ? allSteps : [...cd, runCommand(pm, "dev")];
+  const next = options.dryRun ? allSteps() : [...cd, ...after];
   return { ok: true, root, files: written.actions, next };
 }

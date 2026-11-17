@@ -55,7 +55,8 @@ if (name === "stellar") {
 } else if (name === "npx") {
   const out = opt("--output-dir");
   fs.mkdirSync(path.join(out, "src"), { recursive: true });
-  const wasm = fs.readFileSync(opt("--wasm"), "utf8");
+  if (args.includes("--contract-id") && process.env.STUB_OFFLINE) fail("network unreachable");
+  const wasm = args.includes("--contract-id") ? opt("--contract-id") : fs.readFileSync(opt("--wasm"), "utf8");
   fs.writeFileSync(path.join(out, "src", "index.ts"), "// generated from " + wasm + "\n");
 }
 `;
@@ -96,7 +97,19 @@ async function writeStub(stubs: string, binary: string): Promise<void> {
   }
 }
 
-export async function createHarness(): Promise<Harness> {
+async function initContracts(root: string): Promise<void> {
+  await mkdir(join(root, "contracts/contracts/hello-world/src"), { recursive: true });
+  await writeFile(join(root, "contracts/Cargo.toml"), "[workspace]\n");
+  await writeFile(
+    join(root, "contracts/contracts/hello-world/Cargo.toml"),
+    '[package]\nname = "hello-world"\nversion = "0.0.0"\n',
+  );
+  await writeFile(join(root, "contracts/contracts/hello-world/src/lib.rs"), "// v1\n");
+}
+
+export async function createHarness(
+  contracts: ComposeContext["contracts"] = "hello-world",
+): Promise<Harness> {
   const work = await mkdtemp(join(tmpdir(), "csn-harness-"));
   const root = join(work, "my-app");
   const stubs = join(work, "stubs");
@@ -108,20 +121,14 @@ export async function createHarness(): Promise<Harness> {
     projectName: "my-app",
     network: "testnet",
     style: "none",
-    contracts: "hello-world",
+    contracts,
   };
   for (const f of compose(modulesFor(ctx), ctx).files) {
     await mkdir(join(root, f.path, ".."), { recursive: true });
     await writeFile(join(root, f.path), f.content);
   }
   // What `stellar contract init contracts` would have written.
-  await mkdir(join(root, "contracts/contracts/hello-world/src"), { recursive: true });
-  await writeFile(join(root, "contracts/Cargo.toml"), "[workspace]\n");
-  await writeFile(
-    join(root, "contracts/contracts/hello-world/Cargo.toml"),
-    '[package]\nname = "hello-world"\nversion = "0.0.0"\n',
-  );
-  await writeFile(join(root, "contracts/contracts/hello-world/src/lib.rs"), "// v1\n");
+  if (contracts === "hello-world") await initContracts(root);
 
   // Drop inherited node_modules/.bin entries (npm test adds this repository's), so only the
   // stubs and system tools answer.

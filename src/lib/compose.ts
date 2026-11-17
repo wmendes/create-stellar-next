@@ -7,7 +7,8 @@ export interface ComposeContext {
   projectName: string;
   network: "testnet" | "mainnet";
   style: "tailwind" | "none";
-  contracts: "hello-world" | "none";
+  /** "hello-world", "none", or the ID of an already deployed contract. */
+  contracts: string;
 }
 
 /** An external command a module runs after its files are written, through the runner (B-1). */
@@ -56,6 +57,8 @@ export interface Module {
   commands?: (ctx: ComposeContext) => CommandSpec[];
   /** Lines for the Layout section of the generated AGENTS.md. */
   layout?: string[];
+  /** Scripts the user runs after install and before `dev`, in order. */
+  next?: string[];
 }
 
 export interface Composition {
@@ -67,6 +70,7 @@ export interface Composition {
   doctor: DoctorCheck[];
   requires: string[];
   commands: CommandSpec[];
+  next: string[];
 }
 
 export const TEMPLATES_DIR = fileURLToPath(new URL("../../templates/", import.meta.url));
@@ -154,6 +158,7 @@ export function compose(modules: readonly Module[], ctx: ComposeContext): Compos
   const requires: string[] = [];
   const commands: CommandSpec[] = [];
   const layout: string[] = [];
+  const next: string[] = [];
   const raw: FileSpec[] = [];
   const fileOwners: Record<string, string> = owners.files;
 
@@ -171,6 +176,7 @@ export function compose(modules: readonly Module[], ctx: ComposeContext): Compos
     for (const r of m.requires ?? []) if (!requires.includes(r)) requires.push(r);
     commands.push(...(m.commands?.(ctx) ?? []));
     layout.push(...(m.layout ?? []));
+    for (const n of m.next ?? []) if (!next.includes(n)) next.push(n);
     const files = [...m.templates.flatMap(loadTemplate), ...(m.files?.(ctx) ?? [])];
     for (const f of files) {
       if (fileOwners[f.path] !== undefined) {
@@ -206,5 +212,5 @@ export function compose(modules: readonly Module[], ctx: ComposeContext): Compos
     { path: ".env", content: envText },
   );
   files.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
-  return { files, scripts, dependencies, devDependencies, env, doctor, requires, commands };
+  return { files, scripts, dependencies, devDependencies, env, doctor, requires, commands, next };
 }

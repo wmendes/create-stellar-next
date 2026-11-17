@@ -5,6 +5,7 @@ export const contracts: Module = {
   id: "contracts",
   templates: ["contracts"],
   requires: ["stellar", "cargo"],
+  next: ["setup"],
   dependencies: { "@stellar/stellar-sdk": "17.4.0" },
   env: [
     {
