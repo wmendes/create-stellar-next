@@ -325,7 +325,18 @@ One object with `files`, `next` and `errors`. The JSON Schema is committed by T-
 
 ### §5.4 Edit-detection manifest
 
-`.create-stellar-next.json` in the generated project records a hash of each written file. Its exact shape is fixed by T-101.
+`.create-stellar-next.json` in the generated project records a hash of each written file (T-101, `src/lib/manifest.ts`):
+
+```json
+{
+  "version": 1,
+  "files": {
+    "lib/stellar.ts": "sha256-<64 hex characters>"
+  }
+}
+```
+
+Keys are project-relative POSIX paths, sorted. Each hash is SHA-256 of the exact bytes the tool last wrote. The file ends with a newline and is rewritten only when its content changes.
 
 ### §5.5 Generated project contract
 
@@ -559,7 +570,7 @@ A dependency written `G1` means the human has approved that gate.
 | T-004 | Hand-run hello-world flow on testnet | T-001, T-002 | §6, §7 | done | Init, build, deploy, generate client and call from a script all succeed on testnet; the exact commands are saved in `docs/hello-world-flow.md`; no secret key in any file or log; observed behaviour logged in `docs/SOURCES.md` |
 | T-005 | Repository skeleton and local gates | T-001 | §3.1, §6.2, §8.2 | done | Manifest (ESM, Node 22 or newer), committed lockfile, TypeScript, lint and format, Vitest; a test written first shows the CLI prints its version; the tool name lives in one constant; `.gitignore` added; the five every-task gates in §8.2 have exact commands and pass from a clean checkout; lint tool DEC. Needs Q-06 for the `license` field and `LICENSE` file |
 | T-006 | CI on Linux, macOS and Windows | T-005 | §8, §11 Q-05 | blocked: Q-05, workflow written, not yet run | A GitHub Actions matrix runs every §8.2 every-task gate in locked mode on the three systems and is green. Needs Q-05 |
-| T-101 | File writer with edit detection | G0 | §3.2, §5.4, INV-09, INV-11 | todo | Hashes recorded in `.create-stellar-next.json`; an unchanged file is rewritten without complaint; an edited file is refused without `--force`; dry-run mode writes nothing; property test: writing the same plan twice changes nothing |
+| T-101 | File writer with edit detection | G0 | §3.2, §5.4, INV-09, INV-11 | review | Hashes recorded in `.create-stellar-next.json`; an unchanged file is rewritten without complaint; an edited file is refused without `--force`; dry-run mode writes nothing; property test: writing the same plan twice changes nothing |
 | T-102 | Module format and base module | T-101 | §3.2, §3.4, §3.5, V-17 | todo | A module is data plus files (files, scripts, dependencies, `.env` keys, doctor checks); base template has one page, `lib/stellar.ts`, `.env.example`, `AGENTS.md`, a one-line `CLAUDE.md` and the `check` script; templates lint and typecheck in place; Tailwind by default and `--style none` omits it |
 | T-103 | `create` for `--contracts none --wallet none` | T-102 | §5.1, INV-01, INV-02, INV-05, Q-07 | todo | Generates a project in a temp directory; nothing in it depends on the tool; `.env.example` targets testnet; no wallet, local, registry or envs file exists |
 | T-104 | Non-interactive surface | T-103 | §5.1–§5.3, INV-06 to INV-09, INV-12 | todo | `--yes`, `--json`, `--dry-run`, `--force`; no TTY behaves as `--yes`; exit codes 0, 1, 2, 3 each have a negative-case test; JSON validates against the committed schema; argument parser and prompt library DEC |
@@ -751,6 +762,12 @@ Context: G0 requires CI to be green on three systems. The workflow exists (T-006
 Decision: G0 counts as approved, recorded by the agent from the human's message. T-001 to T-005 are `done`, set on the human's approval. T-006 stays `blocked` until its first green run. M1 work proceeds. Every local gate in §8.2 must still pass on each task.
 Alternatives: wait for the remote before starting M1 (not chosen: the human said resume).
 Consequences: until a remote exists, Linux and Windows are untested. Platform-specific failures may surface late, and fixing them becomes the first job once CI runs. M1 branches stack on `t-006-ci` because `main` does not exist yet.
+
+### DEC-009: File writer rules (2026-11-17, T-101)
+Context: INV-09 to INV-11 and B-4 need a writer that never clobbers user edits, writes nothing on a dry run, and is idempotent.
+Decision: `planWrites` reads the disk and manifest and classifies each file: absent → create; same bytes → unchanged; bytes still match the recorded hash → update; anything else → conflict, or update with `--force`. A file that exists but has no manifest entry counts as a conflict, which covers `add` in projects the tool did not create. `applyPlan` is all or nothing: one conflict means nothing is written. It also writes nothing on a dry run. Paths must be relative POSIX paths inside the target; absolute paths, `..` escapes, backslashes, drive letters and the manifest's own name are rejected. The property test uses a small seeded generator instead of a property-testing library.
+Alternatives: write the non-conflicting files and skip the rest (rejected: leaves a project half updated). `fast-check` (rejected for now: one loop over 50 seeded plans covers the property without a dependency).
+Consequences: §5.4 now fixes the manifest format; it freezes at G1.
 
 ## §11 Open questions
 
