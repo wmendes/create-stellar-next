@@ -62,6 +62,22 @@ npm run setup
 The setup script then deploys `counter` and generates `packages/counter`. Add an exported client for it
 in `lib/contracts.ts`, following `helloWorld`.
 
+## Constructor arguments
+
+A contract whose constructor (`__constructor`) takes arguments gets them from a `constructor.json`
+next to its `Cargo.toml`, such as `contracts/contracts/staking/constructor.json`:
+
+```json
+{ "token": "asset:native", "admin": "dev" }
+```
+
+The setup and deploy scripts pass these after `--`, as `stellar contract deploy … -- --token … --admin
+dev`. A value written `asset:<asset>` becomes that asset's contract ID on the network being deployed
+to, through `stellar contract id asset --asset native --network testnet`, because the ID differs per
+network. `asset:native` is XLM; `asset:USDC:G…` is an issued asset. Every other value is passed as
+written: identity names such as `dev`, addresses (`G…`, `C…`), and numbers. Changing only the
+arguments does not redeploy an unchanged contract; run `npm run contracts:deploy` for a new instance.
+
 ## Generated code
 
 Never edit `packages/`. The clients there come from the JavaScript SDK's generator

@@ -21,8 +21,8 @@ two. Scaffold Stellar facts here were checked against its plugin version 0.0.34 
 ## Configuration: `scaffold.yml` and `stellar.envs.toml`
 
 `stellar.envs.toml` covers the common case: per-environment accounts (the first deploys), an RPC URL,
-contracts built from the workspace, and contracts that are already deployed. It does not cover
-constructor arguments, after-deploy calls, network inheritance (`extends`, `allow-deploy`), RPC headers
+contracts built from the workspace with their constructor arguments, and contracts that are already
+deployed. It does not cover after-deploy calls, network inheritance (`extends`, `allow-deploy`), RPC headers
 or custom directories. Scaffold's configuration is not read automatically. The field-by-field mapping
 is in [scaffold-mapping.md](scaffold-mapping.md).
 
@@ -31,7 +31,8 @@ is in [scaffold-mapping.md](scaffold-mapping.md).
 1. Create a project: `create-stellar-next my-app --contracts none`.
 2. Add the contract workspace: `create-stellar-next add contract`, then copy each contract crate from
    your Scaffold project's `contracts/` into `contracts/contracts/`. A contract whose constructor takes
-   arguments needs those passed by hand: v0 deploys without constructor arguments.
+   arguments gets them from a `constructor.json` beside its `Cargo.toml`, such as
+   `{ "token": "asset:native", "admin": "dev" }`.
 3. Run `npm run setup`. It deploys each contract under an alias named `<project>-<contract>` and
    generates its client in `packages/`.
 4. Export a client for each contract from `lib/contracts.ts`, following `helloWorld`.

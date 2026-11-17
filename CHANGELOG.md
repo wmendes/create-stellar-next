@@ -21,6 +21,8 @@ First version. Not published.
 - Scripts: `setup`, `dev` (with a contract watcher), `check`, `contracts:build`, `contracts:test`,
   `contracts:deploy`, `contracts:bindings`, `contracts:watch`, `network:start`, `network:stop`,
   `envs:apply`.
+- Constructor arguments for deploys: `constructor.json` beside a contract, or `args` in `stellar.envs.toml`;
+  `asset:native` resolves to the network's XLM contract.
 - `AGENTS.md`, `CLAUDE.md`, and guides in `docs/stellar/`, including outdated Stellar patterns and their
   replacements.
 
@@ -28,4 +30,3 @@ First version. Not published.
 
 - The contract registry and the passkeys wallet option (dropped 2026-11-17).
 - Reading Scaffold Stellar's `scaffold.yml` or `environments.toml`.
-- Constructor arguments for deploys.

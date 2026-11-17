@@ -26,7 +26,7 @@ Versions: `stellar-scaffold` 0.0.34 (commit 92865100), built against Stellar CLI
 | Custom network names (for example `testnet-dev`) | Environment names are free, but `network` must be testnet, local or mainnet | Partly |
 | `contracts.<c>.networks.<n>.type: workspace`, `source: <crate>` | `[env.contracts.<c>] source = "<path to crate>"` | Yes, crate name to path |
 | `type: contract`, `source: <ID>` | `id = "<ID>"` | Yes |
-| Constructor `args`, with `${account.…}` interpolation | — | **No.** v0 deploys without constructor arguments |
+| Constructor `args`, with `${account.…}` interpolation | `constructor.json` beside the crate, or `args = { … }` in `stellar.envs.toml` (T-209) | **Partly.** Values pass to `stellar contract deploy -- …`; `asset:<asset>` resolves per network; write identity names instead of `${account.…}` |
 | `after-deploy` method calls | — | **No** |
 | `project.contracts-dir`, `project.clients-dir` | Fixed: `contracts/`, `packages/` | **No.** v0 locations are fixed by design |
 | `project.package-manager` | Detected from the lockfile, or `--package-manager` at create | Not needed |
@@ -34,6 +34,6 @@ Versions: `stellar-scaffold` 0.0.34 (commit 92865100), built against Stellar CLI
 
 ## Decision
 
-It does not map cleanly. Constructor arguments, after-deploy calls, network inheritance, RPC headers and custom directories have no v0 equivalent. Reading the file would also need a YAML parser in every generated project. Following Q-09's default ("also accept it if it maps cleanly"), no reader is built. Recorded as DEC-027.
+It does not map cleanly. After-deploy calls, network inheritance, RPC headers and custom directories have no v0 equivalent (constructor arguments do since T-209, without `${account.…}` interpolation). Reading the file would also need a YAML parser in every generated project. Following Q-09's default ("also accept it if it maps cleanly"), no reader is built. Recorded as DEC-027.
 
 A migration would be by hand, using the table above. The fields that do map cover the common case: accounts, RPC URL, workspace contracts and already deployed contracts.

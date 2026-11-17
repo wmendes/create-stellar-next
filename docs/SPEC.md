@@ -355,6 +355,7 @@ accounts = ["dev"]           # Stellar CLI identity names; the first deploys
 
 [testnet.contracts.hello_world]
 source = "contracts/contracts/hello-world"   # a crate in the workspace: deployed if changed
+# args = { token = "asset:native" }          # optional constructor arguments (T-209)
 # id = "C…"                                   # or: an already deployed contract, never deployed
 ```
 
@@ -597,6 +598,7 @@ A dependency written `G1` means the human has approved that gate.
 | T-206 | `--contracts <id>` | T-203 | §5.1 | done | A typed client only; no Rust workspace and no `contracts/` directory |
 | T-207 | Contract-loop e2e in CI | T-204, T-006 | §7.3, §8, Q-13 | review (CI green on Linux and Windows, run on c88de75; macOS local only, DEC-036) | `create --yes` → `setup` → Playwright reads the contract response; local network container on every PR; testnet nightly with an identity funded per run, no stored secret; `setup` twice leaves the project unchanged |
 | T-208 | `dev` before `setup` stops with the fix | T-205 | DEC-038 | review | In a project with `lib/contracts.ts` whose clients are missing, `dev` exits non-zero before starting Next.js and names `npm run setup`, the same guard as `check` |
+| T-209 | Constructor arguments for deploys | T-203, T-402 | DEC-039 | review | `setup`, `contracts:deploy`, the watcher and `envs:apply` pass a contract's constructor arguments from `constructor.json` (or `args` in `stellar.envs.toml`) after `--`; `asset:<asset>` resolves per network; a deploy failing without the file names where the arguments go |
 | T-301 | `doctor` | G2 | §5.1, INV-07, INV-08, INV-12 | done | Checks come from the module definitions; `--json` validates against its schema; a deliberately removed prerequisite gives exit `3` and the fixing command; identity existence and funding are checked |
 | T-302 | `add contract` and `add local` | T-301 | INV-05, INV-10, INV-11, V-05, V-14 | done | Each is idempotent (second run, no diff); each refuses an edited file without `--force`; `network:start` exists only with local |
 | T-303 | `add wallet` for each verified option | T-302, T-003 | §5.5, V-07, V-09, V-15 | done | Each option implements `connect`, `disconnect`, `getAddress`, `signTransaction` in `lib/wallet/index.ts`; rerunning with another option swaps the adapter without touching pages; idempotent; `create --wallet` uses the same module |
@@ -1032,6 +1034,12 @@ Context: the human ran `npm run dev` in a new hello-world project before `npm ru
 Decision: the guard `check` already had moves into `scripts/clients.mjs` (core module), shared by `check.mjs` and `dev.mjs`. When `lib/contracts.ts` exists and its generated clients are missing or uncompiled, both exit 1 before starting anything, with one line: "Run the setup script first: npm run setup".
 Alternatives: have `dev` run `setup` itself (rejected: `dev` would then create identities and send testnet transactions as a side effect; `setup` stays an explicit step, as `create`'s next steps say).
 Consequences: verified for real: a fresh project's `npm run dev` before `setup` prints that line and starts nothing.
+
+### DEC-039: Constructor arguments for deploys (2026-11-17, T-209)
+Context: building the staking benchmark's reference solution showed that `setup` could not deploy a contract whose constructor takes arguments ("Missing required argument 'token'"), which is the natural design for a token-based contract. Asked whether to run the benchmark as is or fix the gap first, the human chose to fix it first.
+Decision: a contract's constructor arguments live in `constructor.json` beside its `Cargo.toml`, a JSON object of argument names to values. The shared deploy step (used by `setup`, `contracts:deploy`, the watcher and `envs:apply`) passes them after `--`, as `stellar contract deploy … -- --name value`. A value written `asset:<asset>` is resolved on the deploy network with the stock `stellar contract id asset --asset <asset>`, because a token's contract ID differs per network. Other values pass as written (the CLI already accepts identity names and addresses), and non-strings pass as JSON. In `stellar.envs.toml`, `args = { … }` on a `source` contract overrides the file for that environment, and the dry-run plan shows the arguments as written. A deploy that fails without a `constructor.json` adds a line naming the file and an example. The contracts and environments guides document it; the guide is the only place an agent learns the file name.
+Alternatives: a flag such as `setup -- --token …` (rejected: arguments are per contract, and setup deploys several). Reading the values from `.env` (rejected: constructor arguments are not app configuration, and per-contract keys would sprawl). Inferring values from the contract spec (rejected: impossible for most arguments).
+Consequences: §3.4, §5.6 (the format gains an optional `args`). Scaffold's `args` now partly maps (`docs/scaffold-mapping.md`). Changing only the arguments does not redeploy an unchanged contract; `contracts:deploy` does. Verified on testnet: a fresh project with the reference staking contract and `{ "token": "asset:native" }` deployed with `setup` alone and answered `total_staked`.
 
 ## §11 Open questions
 
