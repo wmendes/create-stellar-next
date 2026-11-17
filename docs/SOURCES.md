@@ -78,6 +78,7 @@ Every external fact that was checked, and every piece of code or document that w
 | 2026-11-17 | Latest stellar-scaffold-cli release | 0.0.34 | n/a | Package manager: `cargo search stellar-scaffold-cli` |
 | 2026-11-17 | Scaffold Stellar's current template configuration | `scaffold.yml` `version: 2` (YAML): `project.contracts-dir`, `project.clients-dir`, `networks.<n>.accounts`, `rpc-url`, `rpc-headers`, `extends`, `allow-deploy`; `contracts.<c>.networks.<n>.type` (`workspace` or `contract`), `source`, `args`, `after-deploy`; no `environments.toml` | template head, 2026-11-17 | Observed: files written by `stellar scaffold init` (plugin 0.0.25) from `stellar-scaffold/ui` on GitHub |
 | 2026-11-17 | Scaffold Stellar `environments.toml` format | Not grounded: Raven `stellarDocs.search_docs` and `scout.searchResearch` returned no page describing it | n/a | Raven, asOf 2026-11-17T18:37Z (no matching evidence) |
+| 2026-11-17 | Scaffold Stellar 0.0.34 | `stellar-scaffold` 0.0.34 (92865100), built against Stellar CLI 28.1.0; `init <dir> --yes -p npm` completes and writes `scaffold.yml` v2 (adds `project.package-manager`) and `rust-toolchain.toml` with Rust 1.93.0; no `environments.toml`; `build --network` is "ignored by projects using environments.toml"; commands include `doctor` and `config` | 0.0.34 | Installed by the human; observed `init` run and `--help` output |
 
 ## Copied code
 
