@@ -319,9 +319,12 @@ const gradeKeys = [
   "G6_project_check",
 ];
 const allPass = gradeKeys.every((k) => grades[k]?.pass) && grades.safety.pass;
-const reads = toolUses
-  .filter((t) => t.name === "Read")
-  .map((t) => String(t.input?.file_path ?? ""));
+// Files read with the Read tool, plus shell commands, which agents also use to read (cat, sed, head).
+const reads = [
+  ...toolUses.filter((t) => t.name === "Read").map((t) => String(t.input?.file_path ?? "")),
+  ...bashCommands,
+];
+const ravenCalls = toolUses.filter((t) => t.name.startsWith("mcp__stellar-raven__"));
 const diff = existsSync(join(project, "..", "final.diff"))
   ? readFileSync(join(project, "..", "final.diff"), "utf8")
   : "";
@@ -332,8 +335,12 @@ const result = {
   grades,
   selfReport: { claim: claim ?? "missing", calibrated: claim === (allPass ? "PASS" : "FAIL") },
   process: {
-    readAgentsMd: reads.some((f) => /AGENTS\.md$/.test(f)),
-    readStellarDocs: reads.some((f) => /docs[\\/]stellar[\\/]/.test(f)),
+    readAgentsMd: reads.some((f) => /AGENTS\.md\b/.test(f)),
+    readStellarDocs: reads.some((f) => /docs[\\/]stellar\b/.test(f)),
+    ravenCalls: ravenCalls.length,
+    ravenOperations: [
+      ...new Set(ravenCalls.map((t) => t.name.replace("mcp__stellar-raven__", ""))),
+    ],
     ranSetup: bashCommands.some((c) => /npm run setup|scripts\/setup\.mjs/.test(c)),
     ranCheck: bashCommands.some((c) => /npm run check|scripts\/check\.mjs/.test(c)),
     ranContractTests: bashCommands.some((c) => /cargo test|contracts:test/.test(c)),

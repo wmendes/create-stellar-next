@@ -28,10 +28,19 @@ const MODEL = flag("--model", "claude-haiku-5-5");
 const BUDGET = flag("--budget", "3");
 const TRIALS = Number(flag("--trials", "3"));
 const WALL_MS = 45 * 60_000;
+// Arm: "none" (no MCP servers, the baseline) or "raven" (only the Stellar Raven MCP server).
+const MCP = flag("--mcp", "none");
+if (!["none", "raven"].includes(MCP)) throw new Error(`--mcp must be none or raven, not ${MCP}`);
+const ARM = MCP === "raven" ? "raven" : "baseline";
+// Same name and URL as the developer's own entry, so Claude Code reuses its stored OAuth sign-in.
+const RAVEN_CONFIG = JSON.stringify({
+  mcpServers: { "stellar-raven": { type: "http", url: "https://raven.stellar.org/mcp" } },
+});
 
 /** Claude Code flags that keep the user's own setup out of the trial. */
 function claudeArgs(prompt, budget) {
   return [
+    ...(MCP === "raven" ? ["--mcp-config", RAVEN_CONFIG] : []),
     "-p",
     prompt,
     "--model",
@@ -112,7 +121,7 @@ if (args.includes("--probe")) {
 const prompt = readFileSync(join(here, "prompt.md"), "utf8");
 const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
 for (let n = 1; n <= TRIALS; n++) {
-  const id = `${MODEL}-${stamp}-t${n}`;
+  const id = `${MODEL}-${ARM}-${stamp}-t${n}`;
   const results = join(here, "results", id);
   mkdirSync(results, { recursive: true });
   const work = mkdtempSync(join(tmpdir(), "csn-bench-"));
@@ -161,7 +170,7 @@ for (let n = 1; n <= TRIALS; n++) {
   );
   writeFileSync(
     join(results, "run.json"),
-    `${JSON.stringify({ id, model: MODEL, budgetUsd: Number(BUDGET), wallMs: run.wallMs, exitCode: run.code, timedOut: run.timedOut, workDir: work }, null, 2)}\n`,
+    `${JSON.stringify({ id, model: MODEL, arm: ARM, budgetUsd: Number(BUDGET), wallMs: run.wallMs, exitCode: run.code, timedOut: run.timedOut, workDir: work }, null, 2)}\n`,
   );
 }
 
