@@ -11,6 +11,8 @@ export interface ComposeContext {
   contracts: string;
   /** Add the local network scripts (`--local`). */
   local?: boolean;
+  /** "none" or a wallet option. */
+  wallet?: string;
 }
 
 /** An external command a module runs after its files are written, through the runner (B-1). */
@@ -72,6 +74,8 @@ export interface Module {
   layout?: string[];
   /** Scripts the user runs after install and before `dev`, in order. */
   next?: string[];
+  /** At most one module of a group is in a project; adding one replaces the other. */
+  group?: string;
   /** Whether an existing project uses this module. By default: it has all of the module's scripts. */
   detect?: (project: ProjectInfo) => boolean;
 }

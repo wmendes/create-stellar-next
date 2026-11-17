@@ -12,10 +12,13 @@ import { contractClient } from "../modules/contract-client.ts";
 import { contracts } from "../modules/contracts.ts";
 import { ALL_MODULES } from "../modules/index.ts";
 import { local } from "../modules/local.ts";
+import { WALLETS } from "../modules/wallet.ts";
 
 export interface AddOptions {
   root: string;
-  target: "local" | "contract";
+  target: "local" | "contract" | "wallet";
+  /** For `add wallet --wallet <option>`. */
+  wallet?: string;
   /** For `add contract <id>`. */
   contractId?: string;
   packageManager: PackageManager;
@@ -56,7 +59,13 @@ export async function add(options: AddOptions): Promise<AddResult> {
   const project = readProject(root);
   const detected = detectModules(project);
   const module: Module =
-    options.target === "local" ? local : options.contractId ? contractClient : contracts;
+    options.target === "local"
+      ? local
+      : options.target === "wallet"
+        ? (WALLETS[options.wallet ?? ""] as Module)
+        : options.contractId
+          ? contractClient
+          : contracts;
   const other =
     module === contracts ? contractClient : module === contractClient ? contracts : undefined;
   if (other && detected.includes(other)) {
@@ -77,6 +86,7 @@ export async function add(options: AddOptions): Promise<AddResult> {
     style: "none",
     contracts: options.contractId ?? (options.target === "contract" ? "hello-world" : "none"),
     local: options.target === "local",
+    wallet: options.wallet,
   };
   const parts = compose([module], ctx);
   const pm = options.packageManager;
@@ -96,7 +106,9 @@ export async function add(options: AddOptions): Promise<AddResult> {
   const envText = (file: string) => mergeEnv(read(root, file) ?? "", parts.env, ctx);
   // Render in registry order, so the same modules always give the same AGENTS.md block.
   const canonical = (modules: Module[]) => ALL_MODULES.filter((m) => modules.includes(m));
-  const withModule = canonical([...detected, module]);
+  // A module replaces any other module of its group, such as one wallet for another.
+  const kept = detected.filter((m) => !module.group || m.group !== module.group);
+  const withModule = canonical([...kept, module]);
   const agentsOf = (modules: Module[]) =>
     compose(modules, ctx).files.find((f) => f.path === "AGENTS.md")?.content ?? "";
   const previous = extractBlock(agentsOf(canonical(detected))) ?? "";

@@ -207,14 +207,7 @@ async function runCreate(
       `--contracts must be hello-world, none, or a contract ID (C followed by 55 characters). Got "${contracts}".`,
     );
   }
-  if ((values.wallet ?? "none") !== "none") {
-    return fail(
-      ExitCode.Failure,
-      "NOT_BUILT",
-      `--wallet ${values.wallet} is not built yet.`,
-      "Use --wallet none for now.",
-    );
-  }
+  if (values.wallet === "passkeys") return passkeysNotBuilt();
   for (const flag of ["registry", "envs"] as const) {
     if (values[flag]) {
       return fail(
@@ -286,6 +279,7 @@ async function runCreate(
     style: (values.style ?? "tailwind") as "tailwind" | "none",
     contracts,
     local: values.local ?? false,
+    wallet: values.wallet ?? "none",
     packageManager,
     force: values.force ?? false,
     dryRun,
@@ -325,7 +319,13 @@ async function runAdd(
   if (target === undefined || !ADD_TARGETS.includes(target)) {
     return invalid(`add needs one of: ${ADD_TARGETS.join(", ")}. Got "${target ?? ""}".`);
   }
-  if (target === "wallet" || target === "registry" || target === "envs") {
+  if (target === "wallet") {
+    if (values.wallet === undefined || values.wallet === "none") {
+      return invalid("add wallet needs --wallet wallets-kit or --wallet extension.");
+    }
+    if (values.wallet === "passkeys") return passkeysNotBuilt();
+  }
+  if (target === "registry" || target === "envs") {
     return fail(
       ExitCode.Failure,
       "NOT_BUILT",
@@ -333,7 +333,7 @@ async function runAdd(
       "Use add contract or add local for now.",
     );
   }
-  if (rest.length > 0 || (target === "local" && arg !== undefined)) {
+  if (rest.length > 0 || (target !== "contract" && arg !== undefined)) {
     return invalid(
       `Unexpected arguments after add ${target}: ${[arg, ...rest].filter(Boolean).join(" ")}.`,
     );
@@ -362,7 +362,8 @@ async function runAdd(
     detectPackageManager(env.userAgent);
   const result = await add({
     root,
-    target: target as "contract" | "local",
+    target: target as "contract" | "local" | "wallet",
+    wallet: values.wallet,
     contractId: arg,
     packageManager,
     force: values.force ?? false,
@@ -392,6 +393,15 @@ async function runAdd(
         ? `${target} is already added. Nothing changed.`
         : `Added ${target} (${changed} files changed).`,
   };
+}
+
+function passkeysNotBuilt(): Outcome {
+  return fail(
+    ExitCode.Failure,
+    "NOT_BUILT",
+    "--wallet passkeys is not built yet: passkey smart wallets need a relayer API key from a third-party service, which is waiting on a decision (SPEC Q-22).",
+    "Use --wallet wallets-kit or --wallet extension for now.",
+  );
 }
 
 /** Version of schemas/doctor.schema.json that `doctor --json` follows. */

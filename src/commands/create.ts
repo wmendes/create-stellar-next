@@ -14,6 +14,7 @@ export interface CreateOptions {
   style: ComposeContext["style"];
   contracts: ComposeContext["contracts"];
   local: boolean;
+  wallet: string;
   packageManager: PackageManager;
   force: boolean;
   dryRun: boolean;
@@ -56,6 +57,7 @@ export async function create(options: CreateOptions): Promise<CreateResult> {
     style: options.style,
     contracts: options.contracts,
     local: options.local,
+    wallet: options.wallet,
   };
   const { files, requires, commands, next: setupScripts } = compose(modulesFor(ctx), ctx);
   after = [...setupScripts.map((s) => runCommand(pm, s)), runCommand(pm, "dev")];

@@ -76,7 +76,7 @@ describe("--json", () => {
     [["my-app", "--network", "futurenet", "--json"], 2, "INVALID_ARGUMENT"],
     [["my-app", "--no-such-flag", "--json"], 2, "INVALID_ARGUMENT"],
     [["--json"], 2, "INVALID_ARGUMENT"],
-    [["my-app", "--wallet", "wallets-kit", "--json"], 1, "NOT_BUILT"],
+    [["my-app", "--wallet", "passkeys", "--json"], 1, "NOT_BUILT"],
   ])("reports %j as JSON with exit %i and code %s", async (argv, exitCode, code) => {
     const r = await run(argv);
     expect(r.exitCode).toBe(exitCode);

@@ -3,6 +3,7 @@ import { base } from "./base.ts";
 import { contractClient } from "./contract-client.ts";
 import { contracts } from "./contracts.ts";
 import { local } from "./local.ts";
+import { WALLETS, walletExtension, walletsKit } from "./wallet.ts";
 import { pageHello, pagePlain } from "./page.ts";
 import { styleNone, styleTailwind } from "./style.ts";
 
@@ -15,6 +16,8 @@ export const ALL_MODULES: readonly Module[] = [
   contracts,
   contractClient,
   local,
+  walletsKit,
+  walletExtension,
 ];
 
 /** A contract address: C followed by 55 base32 characters. */
@@ -30,5 +33,6 @@ export function modulesFor(ctx: ComposeContext): Module[] {
     ...(withContracts ? [contracts] : []),
     ...(CONTRACT_ID.test(ctx.contracts) ? [contractClient] : []),
     ...(ctx.local ? [local] : []),
+    ...(ctx.wallet && WALLETS[ctx.wallet] ? [WALLETS[ctx.wallet] as Module] : []),
   ];
 }

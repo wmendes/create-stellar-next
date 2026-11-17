@@ -9,6 +9,8 @@ export interface ProjectInfo {
   scripts: Record<string, string>;
   /** Keys from .env, overridden by the same keys in the environment (as the scripts and Next.js do). */
   env: Record<string, string>;
+  /** Read a project file, or undefined when it does not exist. */
+  read(path: string): string | undefined;
 }
 
 /** Parse KEY=VALUE lines, ignoring comments and blank lines, like the generated scripts do. */
@@ -44,5 +46,9 @@ export function readProject(
     if (value !== undefined && /^(NEXT_PUBLIC_STELLAR_|STELLAR_ACCOUNT$)/.test(key))
       env[key] = value;
   }
-  return { root, exists, scripts, env };
+  const read = (path: string) => {
+    const file = join(root, path);
+    return existsSync(file) ? readFileSync(file, "utf8") : undefined;
+  };
+  return { root, exists, scripts, env, read };
 }

@@ -184,7 +184,7 @@ describe("add, other cases", () => {
     expect(r.stderr).toContain("package.json");
   });
 
-  it.each([["wallet"], ["registry"], ["envs"]])("reports add %s as not built yet", async (m) => {
+  it.each([["registry"], ["envs"]])("reports add %s as not built yet", async (m) => {
     const r = await add(m);
     expect(r.exitCode).toBe(1);
     expect(r.stderr).toContain("not built yet");

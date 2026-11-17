@@ -189,6 +189,8 @@ describe("templates", () => {
       "@types/react-dom",
       "@types/node",
       "@stellar/stellar-sdk",
+      "@stellar/varial-sdk",
+      "@creit.tech/stellar-wallets-kit",
     ];
     const root = JSON.parse(
       readFileSync(new URL("../../package.json", import.meta.url), "utf8"),
