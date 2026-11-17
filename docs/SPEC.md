@@ -540,9 +540,9 @@ The human reviews at each. A gate that cannot pass after three distinct attempts
 
 ### §9.1 Milestones
 
-Current milestone: **M2**. A milestone does not start while the previous gate is failing.
+Current milestone: **M3**. A milestone does not start while the previous gate is failing.
 
-Gate approvals: G0 approved by the human on 2026-11-17 ("Reviewed. Approved. Resume"), with CI not yet run because no remote exists. See DEC-008. G1 approved by the human on 2026-11-17 ("Approved, resume"), on the same terms: CI not yet run, T-105 stays `blocked` until its CI job is green.
+Gate approvals: G0 approved by the human on 2026-11-17 ("Reviewed. Approved. Resume"), with CI not yet run because no remote exists. See DEC-008. G1 approved by the human on 2026-11-17 ("Approved, resume"), on the same terms: CI not yet run, T-105 stays `blocked` until its CI job is green. G2 approved by the human on 2026-11-17 ("approved, resume"), on the same terms: T-207 stays `blocked` until its CI job is green.
 
 | Milestone | Plan phase | Gate |
 |---|---|---|
@@ -575,12 +575,12 @@ A dependency written `G1` means the human has approved that gate.
 | T-103 | `create` for `--contracts none --wallet none` | T-102 | §5.1, INV-01, INV-02, INV-05, Q-07 | done | Generates a project in a temp directory; nothing in it depends on the tool; `.env.example` targets testnet; no wallet, local, registry or envs file exists |
 | T-104 | Non-interactive surface | T-103 | §5.1–§5.3, INV-06 to INV-09, INV-12 | done | `--yes`, `--json`, `--dry-run`, `--force`; no TTY behaves as `--yes`; exit codes 0, 1, 2, 3 each have a negative-case test; JSON validates against the committed schema; argument parser and prompt library DEC |
 | T-105 | Generated-project e2e in CI | T-104, T-006 | §8 | blocked: Q-05, passes locally on macOS, CI job written, not yet run | On three systems: built CLI → temp directory → install → `npm run check` passes; `--dry-run` leaves the directory untouched |
-| T-201 | Command runner | G1 | B-1, INV-09, INV-12, INV-14 | review | One function; logs the exact command; `create` runs the package-manager install through it (Q-07, DEC-011); `--dry-run` prints and does not execute; a failure becomes an error naming the cause and the fix; a missing binary exits `3` |
-| T-202 | Contracts module | T-201 | §3.4, V-06 | review | Calls `stellar contract init`; adds the `contracts:*` scripts; writes `lib/contracts.ts`; the root `AGENTS.md` links to the one in `contracts/` |
-| T-203 | `setup` script | T-202 | INV-03, INV-04, INV-10, V-01 to V-04, V-12, Q-20 | review | Identity, build, deploy with alias, generate client; adds `contracts:deploy`, `contracts:bindings` and `lib/contracts.ts` (moved from T-202, DEC-015); the app gets each contract ID without reading CLI config at run time; a second run leaves the tree hash unchanged; identities by name only; secret-scan gate added |
-| T-204 | Example page | T-203 | §3.4 | review | The home page shows the hello-world contract's response with no wallet |
-| T-205 | Contract watcher in `dev` | T-203 | §3.4 | review | A change under `contracts/` triggers rebuild, redeploy and regenerate; the watcher is a plain Node script in `scripts/` |
-| T-206 | `--contracts <id>` | T-203 | §5.1 | review | A typed client only; no Rust workspace and no `contracts/` directory |
+| T-201 | Command runner | G1 | B-1, INV-09, INV-12, INV-14 | done | One function; logs the exact command; `create` runs the package-manager install through it (Q-07, DEC-011); `--dry-run` prints and does not execute; a failure becomes an error naming the cause and the fix; a missing binary exits `3` |
+| T-202 | Contracts module | T-201 | §3.4, V-06 | done | Calls `stellar contract init`; adds the `contracts:*` scripts; writes `lib/contracts.ts`; the root `AGENTS.md` links to the one in `contracts/` |
+| T-203 | `setup` script | T-202 | INV-03, INV-04, INV-10, V-01 to V-04, V-12, Q-20 | done | Identity, build, deploy with alias, generate client; adds `contracts:deploy`, `contracts:bindings` and `lib/contracts.ts` (moved from T-202, DEC-015); the app gets each contract ID without reading CLI config at run time; a second run leaves the tree hash unchanged; identities by name only; secret-scan gate added |
+| T-204 | Example page | T-203 | §3.4 | done | The home page shows the hello-world contract's response with no wallet |
+| T-205 | Contract watcher in `dev` | T-203 | §3.4 | done | A change under `contracts/` triggers rebuild, redeploy and regenerate; the watcher is a plain Node script in `scripts/` |
+| T-206 | `--contracts <id>` | T-203 | §5.1 | done | A typed client only; no Rust workspace and no `contracts/` directory |
 | T-207 | Contract-loop e2e in CI | T-204, T-006 | §7.3, §8, Q-13 | blocked: Q-05, passes locally on the local network and testnet, CI job written, not yet run | `create --yes` → `setup` → Playwright reads the contract response; local network container on every PR; testnet nightly with an identity funded per run, no stored secret; `setup` twice leaves the project unchanged |
 | T-301 | `doctor` | G2 | §5.1, INV-07, INV-08, INV-12 | todo | Checks come from the module definitions; `--json` validates against its schema; a deliberately removed prerequisite gives exit `3` and the fixing command; identity existence and funding are checked |
 | T-302 | `add contract` and `add local` | T-301 | INV-05, INV-10, INV-11, V-05, V-14 | todo | Each is idempotent (second run, no diff); each refuses an edited file without `--force`; `network:start` exists only with local |
