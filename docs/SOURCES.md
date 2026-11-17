@@ -40,6 +40,7 @@ Every external fact that was checked, and every piece of code or document that w
 | 2026-11-17 | Testnet RPC URL and passphrase | `https://soroban-testnet.stellar.org`; `Test SDF Network ; September 2015` | n/a | Installed `stellar network ls --long` (30.0.1); Raven: https://developers.stellar.org/docs/data/apis/rpc/api-reference/methods/getNetwork#examples |
 | 2026-11-17 | Local network RPC URL and passphrase, as built into the CLI | `http://localhost:8000/rpc`; `Standalone Network ; February 2017` | Stellar CLI 30.0.1 | Installed `stellar network ls --long` |
 | 2026-11-17 | The docs' install page still shows the GitHub Action as `stellar/stellar-cli@v25.2.0`, older than the pinned 30.0.1 | v25.2.0 in the example | n/a | Raven: https://developers.stellar.org/docs/tools/cli/install-cli#stellar-cli |
+| 2026-11-17 | Extension wallet package. Varial (formerly Freighter) is SDF's browser extension wallet; "`@stellar/varial-sdk` is the new name of `@stellar/freighter-api`. Dapps already using `@stellar/freighter-api` keep working, but new methods ship only in `@stellar/varial-sdk`" | `@stellar/varial-sdk` 7.0.0 | 7.0.0 | Raven `stellarDocs.get_doc_page`, asOf 2026-11-17T15:43Z: https://developers.stellar.org/docs/build/guides/freighter/prompt-to-sign-tx; https://developers.stellar.org/docs/tools/developer-tools/wallets; `npm view @stellar/varial-sdk version` |
 
 ## Copied code
 
