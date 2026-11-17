@@ -5,7 +5,11 @@ export const base: Module = {
   id: "base",
   templates: ["base"],
   scripts: {
-    dev: { command: "next dev", description: "Next.js dev server on http://localhost:3000" },
+    dev: {
+      command: "node scripts/dev.mjs",
+      description:
+        "Next.js dev server on http://localhost:3000, plus the contract watcher when `contracts/` exists",
+    },
     build: { command: "next build", description: "Production build" },
     start: { command: "next start", description: "Serve the production build" },
     lint: { command: "eslint", description: "ESLint with the Next.js rules" },

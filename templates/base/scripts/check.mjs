@@ -2,6 +2,13 @@
 // Plain Node: read it, change it, or run each command yourself.
 import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync } from "node:fs";
+import { delimiter, join } from "node:path";
+
+// Find the project's own binaries even when this script is run without `npm run`.
+const env = {
+  ...process.env,
+  PATH: `${join("node_modules", ".bin")}${delimiter}${process.env.PATH}`,
+};
 
 const clientsMissing =
   !existsSync("packages/contract-ids.json") ||
@@ -27,7 +34,7 @@ steps.push({ name: "Build", command: "next build" });
 for (const step of steps) {
   const where = step.cwd ? ` (in ${step.cwd}/)` : "";
   console.log(`\n> ${step.name}: ${step.command}${where}`);
-  const result = spawnSync(step.command, { stdio: "inherit", shell: true, cwd: step.cwd });
+  const result = spawnSync(step.command, { stdio: "inherit", shell: true, cwd: step.cwd, env });
   if (result.status !== 0) {
     console.error(
       `\n✗ ${step.name} failed. Fix the errors above, then run the check script again.`,

@@ -579,7 +579,7 @@ A dependency written `G1` means the human has approved that gate.
 | T-202 | Contracts module | T-201 | §3.4, V-06 | review | Calls `stellar contract init`; adds the `contracts:*` scripts; writes `lib/contracts.ts`; the root `AGENTS.md` links to the one in `contracts/` |
 | T-203 | `setup` script | T-202 | INV-03, INV-04, INV-10, V-01 to V-04, V-12, Q-20 | review | Identity, build, deploy with alias, generate client; adds `contracts:deploy`, `contracts:bindings` and `lib/contracts.ts` (moved from T-202, DEC-015); the app gets each contract ID without reading CLI config at run time; a second run leaves the tree hash unchanged; identities by name only; secret-scan gate added |
 | T-204 | Example page | T-203 | §3.4 | review | The home page shows the hello-world contract's response with no wallet |
-| T-205 | Contract watcher in `dev` | T-203 | §3.4 | todo | A change under `contracts/` triggers rebuild, redeploy and regenerate; the watcher is a plain Node script in `scripts/` |
+| T-205 | Contract watcher in `dev` | T-203 | §3.4 | review | A change under `contracts/` triggers rebuild, redeploy and regenerate; the watcher is a plain Node script in `scripts/` |
 | T-206 | `--contracts <id>` | T-203 | §5.1 | todo | A typed client only; no Rust workspace and no `contracts/` directory |
 | T-207 | Contract-loop e2e in CI | T-204, T-006 | §7.3, §8, Q-13 | todo | `create --yes` → `setup` → Playwright reads the contract response; local network container on every PR; testnet nightly with an identity funded per run, no stored secret; `setup` twice leaves the project unchanged |
 | T-301 | `doctor` | G2 | §5.1, INV-07, INV-08, INV-12 | todo | Checks come from the module definitions; `--json` validates against its schema; a deliberately removed prerequisite gives exit `3` and the fixing command; identity existence and funding are checked |
@@ -845,6 +845,17 @@ Decision:
 - When `setup` skips an unchanged deploy, it still resolves the alias and records the ID. This fixes a T-203 bug, on the T-204 branch because the branches stack; a test now covers it.
 Alternatives: a Turbopack extension alias in `next.config.ts` (rejected: config the user would have to understand, for a stock package that the docs build first). `npm install && npm run build` inside the package, as the docs show for Astro (rejected: a second SDK copy in the bundle).
 Consequences: verified for real on testnet. `check` before `setup` gives the setup message; after `setup`, `check` passes all four steps; `next start` serves `Hello Stellar`; a second `setup` leaves `git status` empty; the secret scan is clean. The typecheck fixtures are now the compiled `.d.ts` files.
+
+### DEC-018: `dev` and the contract watcher (2026-11-17, T-205)
+Context: `dev` must run Next.js plus a watcher that rebuilds, redeploys and regenerates clients when a contract changes. The watcher must be a plain Node script.
+Decision:
+- `dev` is `node scripts/dev.mjs` (base module). It starts `next dev`, and also `scripts/watch-contracts.mjs` when `contracts/Cargo.toml` and the watcher exist, so the contracts module does not edit `dev`. Stopping `dev`, or `next dev` failing to start, stops the watcher too.
+- The watcher uses `fs.watch` with `recursive: true` on `contracts/`, reacts only to `.rs` and `Cargo.toml` files outside any `target/` directory, waits 300 ms for edits to settle, and runs one rebuild at a time, queueing one more if changes arrive meanwhile. Each rebuild rereads `.env`, then runs the same steps as `setup` minus the identity: build, deploy only if the Wasm changed, regenerate. A failed step prints the error and "Still watching"; it never exits the watcher.
+- The watcher is off on mainnet. It refuses to deploy if `.env` switches to mainnet while it runs.
+- `dev.mjs` and `check.mjs` put the project's `node_modules/.bin` on `PATH`, so they also work when run as `node scripts/…` without `npm run`, as agents often do. A real run exposed this: `next` was not found.
+- Script tests share a harness (`test/unit/project-harness.ts`) of stub `stellar`, `npx` and `next` binaries. It drops inherited `node_modules/.bin` entries from `PATH`, because `npm test` would otherwise put this repository's real `next` first.
+Alternatives: `chokidar` (rejected: Node's recursive `fs.watch` works on Linux, macOS and Windows on Node 22+, with no dependency in every generated project). `concurrently` to run two processes (rejected: one more dependency for 30 lines of Node).
+Consequences: §3.4's `dev` row holds. Verified for real on testnet: with `node scripts/dev.mjs` running, the page showed "Hi Stellar"; changing the contract to "Hello" made the watcher rebuild, redeploy and regenerate, and the page then showed "Hello Stellar" with no restart. 8 harness tests cover the watcher and `dev`, including target-directory changes, failures, mainnet and a missing `next`.
 
 ## §11 Open questions
 
