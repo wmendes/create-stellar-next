@@ -149,6 +149,21 @@ describe("doctor in a hello-world project", () => {
   });
 });
 
+describe("doctor and environment variables", () => {
+  it("lets environment variables override .env, as the generated scripts and Next.js do", async () => {
+    const dir = await project();
+    const runner = fakeRunner({ stdout: healthy() });
+    await main(["doctor", "--json"], {
+      cwd: dir,
+      createRunner: runner.factory,
+      environment: { NEXT_PUBLIC_STELLAR_NETWORK: "local", STELLAR_ACCOUNT: "ci" },
+    });
+    expect(runner.calls.map((c) => [c.command, ...c.args].join(" "))).toContain(
+      "stellar ledger entry fetch account --account ci --network local",
+    );
+  });
+});
+
 describe("doctor in other projects", () => {
   it("checks only Node for --contracts none", async () => {
     const dir = await project("--contracts", "none");

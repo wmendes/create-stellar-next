@@ -8,6 +8,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 <!-- END:nextjs-agent-rules -->
 
+<!-- BEGIN:stellar-agent-rules -->
+
 # Agent guide
 
 A Next.js App Router app with a Stellar contract workflow. All configuration is in `.env`.
@@ -32,3 +34,5 @@ Run `stellar skill` for the Stellar CLI's own guide for agents. Check `stellar <
 4. Do not edit `packages/`. Change the contract and run `contracts:bindings`.
 5. Do not use `stellar contract bindings typescript` or `@stellar/stellar-base`.
 6. Run `check` before reporting a task as done.
+
+<!-- END:stellar-agent-rules -->

@@ -134,13 +134,13 @@ describe("invalid arguments exit 2 and name the fix", () => {
 });
 
 describe("options not built yet", () => {
-  it.each([
-    [["my-app", "--contracts", "none", "--wallet", "wallets-kit"], "--wallet none"],
-    [["my-app", "--contracts", "none", "--local"], "--local"],
-  ])("%j fails with exit 1, writes nothing and says what works today", async (argv, works) => {
-    const result = await run(...argv);
-    expect(result.exitCode).toBe(1);
-    expect(result.stderr).toContain(works);
-    expect(existsSync(join(cwd, "my-app"))).toBe(false);
-  });
+  it.each([[["my-app", "--contracts", "none", "--wallet", "wallets-kit"], "--wallet none"]])(
+    "%j fails with exit 1, writes nothing and says what works today",
+    async (argv, works) => {
+      const result = await run(...argv);
+      expect(result.exitCode).toBe(1);
+      expect(result.stderr).toContain(works);
+      expect(existsSync(join(cwd, "my-app"))).toBe(false);
+    },
+  );
 });

@@ -9,6 +9,8 @@ export interface ComposeContext {
   style: "tailwind" | "none";
   /** "hello-world", "none", or the ID of an already deployed contract. */
   contracts: string;
+  /** Add the local network scripts (`--local`). */
+  local?: boolean;
 }
 
 /** An external command a module runs after its files are written, through the runner (B-1). */

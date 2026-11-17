@@ -1,9 +1,7 @@
-import type { DoctorCheck, Module } from "../lib/compose.ts";
+import type { DoctorCheck } from "../lib/compose.ts";
 import { type ProjectInfo, readProject } from "../lib/project.ts";
 import type { Runner } from "../lib/runner.ts";
-import { base } from "../modules/base.ts";
-import { contracts } from "../modules/contracts.ts";
-import { ALL_MODULES } from "../modules/index.ts";
+import { detectModules } from "../lib/detect.ts";
 
 export interface CheckResult {
   id: string;
@@ -13,21 +11,15 @@ export interface CheckResult {
   fix?: string;
 }
 
-/** The modules a project uses, judged from its files. Outside a project: what a default create needs. */
-export function detectModules(project: ProjectInfo): Module[] {
-  if (!project.exists) return [base, contracts];
-  return ALL_MODULES.filter((m) => {
-    if (m.detect) return m.detect(project);
-    const scripts = Object.keys(m.scripts ?? {});
-    return scripts.length > 0 && scripts.every((s) => s in project.scripts);
-  });
-}
-
 const resolve = <T>(value: T | ((p: ProjectInfo) => T), p: ProjectInfo): T =>
   typeof value === "function" ? (value as (p: ProjectInfo) => T)(p) : value;
 
-export async function doctor(root: string, runner: Runner): Promise<CheckResult[]> {
-  const project = readProject(root);
+export async function doctor(
+  root: string,
+  runner: Runner,
+  environment?: Record<string, string | undefined>,
+): Promise<CheckResult[]> {
+  const project = readProject(root, environment);
   const checks: DoctorCheck[] = [];
   for (const m of detectModules(project)) {
     for (const c of m.doctor ?? []) if (!checks.some((x) => x.id === c.id)) checks.push(c);

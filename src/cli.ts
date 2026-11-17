@@ -1,6 +1,7 @@
-import { readFileSync } from "node:fs";
-import { basename, resolve } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
+import { basename, join, resolve } from "node:path";
 import { parseArgs } from "node:util";
+import { add, lockfileManager } from "./commands/add.ts";
 import { create, projectNameError } from "./commands/create.ts";
 import type { ToolError } from "./lib/errors.ts";
 import {
@@ -42,6 +43,8 @@ export interface CliEnv {
   nodeVersion?: string;
   /** Builds the command runner. Tests pass a fake; the default runs real commands. */
   createRunner?: (options: RunnerOptions) => Runner;
+  /** Environment variables; defaults to process.env. */
+  environment?: Record<string, string | undefined>;
   /** Live progress for humans: each command line and its output. Never used with --json. */
   echo?: (text: string) => void;
 }
@@ -170,6 +173,7 @@ export async function main(argv: readonly string[], env: CliEnv = {}): Promise<C
   if (values.help) return { exitCode: 0, stdout: USAGE, stderr: "" };
   if (values.version) return { exitCode: 0, stdout: `${packageVersion()}\n`, stderr: "" };
   if (parsed.positionals[0] === "doctor") return runDoctor(parsed, env, json);
+  if (parsed.positionals[0] === "add") return render(await runAdd(parsed, env), json);
   return render(await runCreate(parsed, env, json), json);
 }
 
@@ -211,7 +215,7 @@ async function runCreate(
       "Use --wallet none for now.",
     );
   }
-  for (const flag of ["local", "registry", "envs"] as const) {
+  for (const flag of ["registry", "envs"] as const) {
     if (values[flag]) {
       return fail(
         ExitCode.Failure,
@@ -281,6 +285,7 @@ async function runCreate(
     network: (values.network ?? "testnet") as "testnet" | "mainnet",
     style: (values.style ?? "tailwind") as "tailwind" | "none",
     contracts,
+    local: values.local ?? false,
     packageManager,
     force: values.force ?? false,
     dryRun,
@@ -310,6 +315,85 @@ async function runCreate(
   };
 }
 
+const ADD_TARGETS = ["contract", "local", "wallet", "registry", "envs"];
+
+async function runAdd(
+  { values, positionals }: ReturnType<typeof parse>,
+  env: CliEnv,
+): Promise<Outcome> {
+  const [, target, arg, ...rest] = positionals;
+  if (target === undefined || !ADD_TARGETS.includes(target)) {
+    return invalid(`add needs one of: ${ADD_TARGETS.join(", ")}. Got "${target ?? ""}".`);
+  }
+  if (target === "wallet" || target === "registry" || target === "envs") {
+    return fail(
+      ExitCode.Failure,
+      "NOT_BUILT",
+      `add ${target} is not built yet.`,
+      "Use add contract or add local for now.",
+    );
+  }
+  if (rest.length > 0 || (target === "local" && arg !== undefined)) {
+    return invalid(
+      `Unexpected arguments after add ${target}: ${[arg, ...rest].filter(Boolean).join(" ")}.`,
+    );
+  }
+  if (target === "contract" && arg !== undefined && !CONTRACT_ID.test(arg)) {
+    return invalid(
+      `add contract takes nothing, or a contract ID (C followed by 55 characters). Got "${arg}".`,
+    );
+  }
+  const root = env.cwd ?? process.cwd();
+  if (!existsSync(join(root, "package.json"))) {
+    return invalid(
+      `No package.json in ${root}. Run add inside a Next.js project, or create one with \`${TOOL_NAME} <dir>\`.`,
+    );
+  }
+  const dryRun = values["dry-run"] ?? false;
+  const echo = env.echo;
+  const runner = (env.createRunner ?? createRunner)({
+    dryRun,
+    log: echo && ((line) => echo(`${line}\n`)),
+    echo,
+  });
+  const packageManager =
+    (values["package-manager"] as PackageManager | undefined) ??
+    lockfileManager(root) ??
+    detectPackageManager(env.userAgent);
+  const result = await add({
+    root,
+    target: target as "contract" | "local",
+    contractId: arg,
+    packageManager,
+    force: values.force ?? false,
+    dryRun,
+    runner,
+  });
+  if (!result.ok) {
+    const error = result.error ?? { code: "INTERNAL" as const, message: "add failed.", fix: HELP };
+    const exitCode =
+      error.code === "MISSING_PREREQUISITE"
+        ? ExitCode.MissingPrerequisite
+        : error.code === "INVALID_ARGUMENT"
+          ? ExitCode.InvalidArguments
+          : ExitCode.Failure;
+    return { exitCode, files: result.files, next: result.next, errors: [error], dryRun };
+  }
+  const changed = result.files.filter((f) => f.action !== "unchanged").length;
+  return {
+    exitCode: ExitCode.Success,
+    files: result.files,
+    next: result.next,
+    errors: [],
+    dryRun,
+    summary: dryRun
+      ? `Would add ${target} (${changed} files).`
+      : changed === 0
+        ? `${target} is already added. Nothing changed.`
+        : `Added ${target} (${changed} files changed).`,
+  };
+}
+
 /** Version of schemas/doctor.schema.json that `doctor --json` follows. */
 export const DOCTOR_SCHEMA_VERSION = 1;
 
@@ -330,7 +414,7 @@ async function runDoctor(
       : { exitCode: 2, stdout: "", stderr: `${message}\n${HELP}\n` };
   }
   const runner = (env.createRunner ?? createRunner)({ dryRun: false });
-  const checks = await doctor(env.cwd ?? process.cwd(), runner);
+  const checks = await doctor(env.cwd ?? process.cwd(), runner, env.environment);
   const failed = checks.filter((c) => c.status === "failed");
   const exitCode = failed.length > 0 ? ExitCode.MissingPrerequisite : ExitCode.Success;
   if (json) {

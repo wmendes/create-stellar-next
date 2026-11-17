@@ -2,6 +2,7 @@ import type { ComposeContext, Module } from "../lib/compose.ts";
 import { base } from "./base.ts";
 import { contractClient } from "./contract-client.ts";
 import { contracts } from "./contracts.ts";
+import { local } from "./local.ts";
 import { pageHello, pagePlain } from "./page.ts";
 import { styleNone, styleTailwind } from "./style.ts";
 
@@ -13,6 +14,7 @@ export const ALL_MODULES: readonly Module[] = [
   pageHello,
   contracts,
   contractClient,
+  local,
 ];
 
 /** A contract address: C followed by 55 base32 characters. */
@@ -27,5 +29,6 @@ export function modulesFor(ctx: ComposeContext): Module[] {
     withContracts ? pageHello : pagePlain,
     ...(withContracts ? [contracts] : []),
     ...(CONTRACT_ID.test(ctx.contracts) ? [contractClient] : []),
+    ...(ctx.local ? [local] : []),
   ];
 }

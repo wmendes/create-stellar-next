@@ -13,6 +13,7 @@ export interface CreateOptions {
   network: ComposeContext["network"];
   style: ComposeContext["style"];
   contracts: ComposeContext["contracts"];
+  local: boolean;
   packageManager: PackageManager;
   force: boolean;
   dryRun: boolean;
@@ -54,6 +55,7 @@ export async function create(options: CreateOptions): Promise<CreateResult> {
     network: options.network,
     style: options.style,
     contracts: options.contracts,
+    local: options.local,
   };
   const { files, requires, commands, next: setupScripts } = compose(modulesFor(ctx), ctx);
   after = [...setupScripts.map((s) => runCommand(pm, s)), runCommand(pm, "dev")];

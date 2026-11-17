@@ -80,7 +80,11 @@ async function readIfExists(file: string): Promise<Buffer | undefined> {
 export async function planWrites(
   root: string,
   files: readonly FileSpec[],
-  options: { force: boolean },
+  options: {
+    force: boolean;
+    /** Paths whose content was already merged with the user's version: never a conflict. */
+    merged?: ReadonlySet<string>;
+  },
 ): Promise<WritePlan> {
   const seen = new Set<string>();
   const normalized = files.map((file) => {
@@ -101,7 +105,12 @@ export async function planWrites(
     let action: WriteAction;
     if (existing === undefined) action = "create";
     else if (hashContent(existing) === target) action = "unchanged";
-    else if (manifest.files[path] === hashContent(existing) || options.force) action = "update";
+    else if (
+      manifest.files[path] === hashContent(existing) ||
+      options.force ||
+      options.merged?.has(path)
+    )
+      action = "update";
     else action = "conflict";
     if (action !== "conflict") next.files[path] = target;
     writes.push({ path, action, content });

@@ -7,7 +7,7 @@ export interface ProjectInfo {
   /** False outside a project (no package.json). */
   exists: boolean;
   scripts: Record<string, string>;
-  /** Keys from .env, without process.env. */
+  /** Keys from .env, overridden by the same keys in the environment (as the scripts and Next.js do). */
   env: Record<string, string>;
 }
 
@@ -21,7 +21,10 @@ export function parseEnv(text: string): Record<string, string> {
   return values;
 }
 
-export function readProject(root: string): ProjectInfo {
+export function readProject(
+  root: string,
+  environment: Record<string, string | undefined> = process.env,
+): ProjectInfo {
   const pkgFile = join(root, "package.json");
   const exists = existsSync(pkgFile);
   let scripts: Record<string, string> = {};
@@ -36,5 +39,10 @@ export function readProject(root: string): ProjectInfo {
   }
   const envFile = join(root, ".env");
   const env = existsSync(envFile) ? parseEnv(readFileSync(envFile, "utf8")) : {};
+  // Only the keys the tool reads, so unrelated shell variables never look like configuration.
+  for (const [key, value] of Object.entries(environment)) {
+    if (value !== undefined && /^(NEXT_PUBLIC_STELLAR_|STELLAR_ACCOUNT$)/.test(key))
+      env[key] = value;
+  }
   return { root, exists, scripts, env };
 }
