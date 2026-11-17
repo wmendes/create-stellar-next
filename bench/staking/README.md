@@ -34,3 +34,13 @@ servers), `--no-session-persistence`, `--max-budget-usd 3` and a 45-minute wall-
 prompts are off (`bypassPermissions`), as a headless run requires. It runs on the development Mac, not in
 a container, by the human's choice: the agent could in principle read files outside its directory,
 including these graders. The isolation probe (`run.mjs --probe`) records what the agent can see.
+
+## Grader validation (before any trial)
+
+`reference/` holds a known-good solution, written in a project this tool generated (2026-11-17). Its
+deploy step is the stock CLI, `stellar contract deploy … -- --token <native XLM contract ID>`: the
+project's `setup` script cannot deploy a contract whose constructor takes arguments, and stops with
+"Missing required argument 'token'". The graders on that solution: G1 to G6 pass, safety passes, and a
+`RESULT: PASS` claim is calibrated. On an untouched project with a false `RESULT: PASS`, every outcome
+KPI fails and the claim is marked miscalibrated. So the task is achievable with this tool, and the
+graders tell the two apart.
