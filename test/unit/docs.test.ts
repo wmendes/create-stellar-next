@@ -84,3 +84,29 @@ describe("AGENTS.md rule 4", () => {
     );
   });
 });
+
+describe("outdated patterns (T-502)", () => {
+  const ctx: ComposeContext = { ...base, contracts: "none" };
+  const files = new Map(compose(modulesFor(ctx), ctx).files.map((f) => [f.path, f.content]));
+  const guide = files.get("docs/stellar/outdated.md") ?? "";
+  const rows = guide.split("\n").filter((l) => l.startsWith("| `"));
+
+  it("ships in every project and is linked from AGENTS.md", () => {
+    expect(guide).not.toBe("");
+    expect(files.get("AGENTS.md")).toContain("docs/stellar/outdated.md");
+  });
+
+  it("pairs each outdated pattern with its replacement and a source", () => {
+    expect(rows.length).toBeGreaterThanOrEqual(7);
+    for (const row of rows) {
+      const cells = row.split("|").map((c) => c.trim());
+      expect(cells[2], row).toMatch(/`/);
+      expect(cells[3], row).toMatch(/https:\/\/developers\.stellar\.org\/|installed:/);
+    }
+  });
+
+  it("covers the two patterns AGENTS.md rule 5 forbids", () => {
+    expect(guide).toContain("`stellar contract bindings typescript`");
+    expect(guide).toContain("`@stellar/stellar-base`");
+  });
+});

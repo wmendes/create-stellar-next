@@ -604,7 +604,7 @@ A dependency written `G1` means the human has approved that gate.
 | T-402 | Envs module | G3 | §5.6, INV-03, INV-05, INV-10, INV-14 | review | Parses `stellar.envs.toml`; plans the stock commands; prints each, then runs it; `envs:apply --dry-run` matches a stored snapshot; `envs:apply` on a local network deploys the declared contract; never starts Docker itself; no envs file when the flag is off; TOML parser DEC |
 | T-403 | Scaffold Stellar `environments.toml` mapping | T-402 | V-11, Q-09 | review | Tested against Scaffold Stellar's documented examples; what maps and what does not is recorded for `REPORT.md` |
 | T-501 | Generated `AGENTS.md`, bundled docs, `llms.txt`, docs test | G4 | §5.7, INV-15 | review | The docs test is written first and asserts that every command named in `AGENTS.md` and the bundled docs exists and runs; `AGENTS.md` is under 80 lines with the layout, scripts, pointers and six rules |
-| T-502 | Outdated-patterns section | T-501 | INV-13, V-01, V-08 | todo | Each outdated pattern sits beside its current replacement; each pair has a source in `docs/SOURCES.md` |
+| T-502 | Outdated-patterns section | T-501 | INV-13, V-01, V-08 | review | Each outdated pattern sits beside its current replacement; each pair has a source in `docs/SOURCES.md` |
 | T-503 | Generated-client header | T-501 | §3.4 | todo | Files under `packages/` start with a header naming the script that regenerates them; the header survives regeneration |
 | T-504 | Repository `AGENTS.md` | T-501 | §0.4 | todo | Points to `CLAUDE.md` and `docs/SPEC.md`; states no rule of its own |
 | T-601 | Benchmark harness and pinned image | G5 | §7.2, §9.3, B-6, V-18 | todo | Pinned image with Node, Rust, the Stellar CLI and each arm's prerequisites; a fresh container per trial with no shared state; the same turn, time and token limits for every arm; transcript, final diff, grader output, turns, tokens and wall time saved per trial; secret scan before commit |
@@ -969,6 +969,12 @@ Decision:
 - `llms.txt` (T-501's last item) is written in T-504 with the repository's own `AGENTS.md`, since it indexes the package's docs, not a project's.
 Alternatives: docs only in the package, with a URL in `AGENTS.md` (rejected: the project must not depend on the tool, and agents read local files first). Hosting the docs (rejected: no site in v0).
 Consequences: §5.7 (rule 4 wording per module), §8.2 (Docs gate), Q-21 answered with its default.
+
+### DEC-029: Outdated patterns guide (2026-11-17, T-502)
+Context: agents work from older training data. T-502 adds a section pairing each outdated pattern with its current replacement, each pair sourced.
+Decision: `docs/stellar/outdated.md` ships in every project (core module) and is linked from `AGENTS.md`'s Docs section. It holds eight pairs, each with a Stellar docs URL from Raven or an installed-source citation: `stellar contract bindings typescript`, `@stellar/stellar-base`, `SorobanRpc`, the `soroban` CLI, the `wasm32-unknown-unknown` target, `cargo build --target` for contracts, `@stellar/freighter-api`, and `stellar fee-stats`; plus a note that Soroban-RPC is now Stellar RPC. A unit test checks that each row has a replacement and a source, and that rule 5's two patterns are covered. The docs tool test now probes 16 commands.
+Alternatives: put the pairs in `AGENTS.md` (rejected: the 80-line limit; `AGENTS.md` links to the guide instead).
+Consequences: §5.7 unchanged (rule 5 still names the two most common patterns).
 
 ## §11 Open questions
 

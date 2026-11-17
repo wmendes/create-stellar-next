@@ -79,6 +79,11 @@ Every external fact that was checked, and every piece of code or document that w
 | 2026-11-17 | Scaffold Stellar's current template configuration | `scaffold.yml` `version: 2` (YAML): `project.contracts-dir`, `project.clients-dir`, `networks.<n>.accounts`, `rpc-url`, `rpc-headers`, `extends`, `allow-deploy`; `contracts.<c>.networks.<n>.type` (`workspace` or `contract`), `source`, `args`, `after-deploy`; no `environments.toml` | template head, 2026-11-17 | Observed: files written by `stellar scaffold init` (plugin 0.0.25) from `stellar-scaffold/ui` on GitHub |
 | 2026-11-17 | Scaffold Stellar `environments.toml` format | Not grounded: Raven `stellarDocs.search_docs` and `scout.searchResearch` returned no page describing it | n/a | Raven, asOf 2026-11-17T18:37Z (no matching evidence) |
 | 2026-11-17 | Scaffold Stellar 0.0.34 | `stellar-scaffold` 0.0.34 (92865100), built against Stellar CLI 28.1.0; `init <dir> --yes -p npm` completes and writes `scaffold.yml` v2 (adds `project.package-manager`) and `rust-toolchain.toml` with Rust 1.93.0; no `environments.toml`; `build --network` is "ignored by projects using environments.toml"; commands include `doctor` and `config` | 0.0.34 | Installed by the human; observed `init` run and `--help` output |
+| 2026-11-17 | "Soroban CLI has been renamed to Stellar CLI" | as stated | n/a | Raven `stellarDocs.search_docs`, asOf 2026-11-17T18:59Z: https://developers.stellar.org/docs/networks/software-versions |
+| 2026-11-17 | "Stellar-RPC was renamed from Soroban-RPC in Nov 2024" | as stated | n/a | Raven, asOf 2026-11-17T18:59Z: https://developers.stellar.org/docs/data/apis/rpc |
+| 2026-11-17 | The `wasm32-unknown-unknown` target is not supported for Soroban contracts with Rust 1.82 or newer; use `wasm32v1-none` (Rust 1.84+) or `stellar contract build` | as stated | n/a | Raven, asOf 2026-11-17T18:59Z: https://developers.stellar.org/docs/learn/fundamentals/contract-development/rust-dialect#limited-webassembly-features |
+| 2026-11-17 | `@stellar/stellar-sdk` 17.4.0 exports `rpc` (`export * as rpc`) and has no `SorobanRpc` export | as stated | 17.4.0 | Installed: `lib/esm/index.d.ts` |
+| 2026-11-17 | `stellar fee-stats` is deprecated: "use `fees stats` instead" | as stated | Stellar CLI 30.0.1 | Installed: `stellar fee-stats --help` |
 
 ## Copied code
 

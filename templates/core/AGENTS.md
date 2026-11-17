@@ -25,7 +25,7 @@ A Next.js App Router app with a Stellar contract workflow. All configuration is 
 ## Docs
 
 Read `docs/stellar/README.md` first: guides for this project's contracts, network and wallet, matching
-its versions. Run `stellar skill` for the Stellar CLI's own guide for agents, and check
+its versions. Before using a Stellar API from memory, check `docs/stellar/outdated.md`. Run `stellar skill` for the Stellar CLI's own guide for agents, and check
 `stellar <command> --help` before using a flag.
 
 ## Rules
