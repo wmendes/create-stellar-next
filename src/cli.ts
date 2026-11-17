@@ -316,6 +316,23 @@ async function runCreate(
   }
   contracts ??= "hello-world";
 
+  let network = values.network;
+  if (network === undefined && select) {
+    network = await select({
+      message: "Which network should the app use?",
+      options: [
+        { value: "testnet", label: "Testnet", hint: "free test funds; the default" },
+        {
+          value: "mainnet",
+          label: "Mainnet",
+          hint: "real funds; no RPC URL is shipped: set your provider's URL in .env",
+        },
+      ],
+      initialValue: "testnet",
+    });
+    if (network === undefined) return cancelled();
+  }
+
   let wallet = values.wallet;
   if (wallet === undefined && select) {
     wallet = await select({
@@ -365,9 +382,22 @@ async function runCreate(
     if (style === undefined) return cancelled();
   }
 
-  const packageManager =
-    (values["package-manager"] as PackageManager | undefined) ??
-    detectPackageManager(env.userAgent);
+  let packageManager = values["package-manager"] as PackageManager | undefined;
+  if (packageManager === undefined && select) {
+    const detected = detectPackageManager(env.userAgent);
+    const answer = await select({
+      message: "Which package manager should install the project?",
+      options: PACKAGE_MANAGERS.map((pm) => ({
+        value: pm,
+        label: pm,
+        hint: pm === detected ? "detected" : undefined,
+      })),
+      initialValue: detected,
+    });
+    if (answer === undefined) return cancelled();
+    packageManager = answer as PackageManager;
+  }
+  packageManager ??= detectPackageManager(env.userAgent);
   const dryRun = values["dry-run"] ?? false;
   const echo = json ? undefined : env.echo;
   const runner = (env.createRunner ?? createRunner)({
@@ -378,7 +408,7 @@ async function runCreate(
   const result = await create({
     dir,
     cwd,
-    network: (values.network ?? "testnet") as "testnet" | "mainnet",
+    network: (network ?? "testnet") as "testnet" | "mainnet",
     style: (style ?? "tailwind") as "tailwind" | "none",
     contracts,
     local: local ?? false,

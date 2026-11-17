@@ -34,6 +34,17 @@ function scripted(answers: Record<string, string | boolean | undefined>) {
   return { asked, env: { prompt, select, confirm } };
 }
 
+/** Answers for every question, overridable per test. */
+const defaults = {
+  contracts: "hello-world",
+  "which network": "testnet",
+  wallet: "none",
+  "local network": false,
+  environments: false,
+  styl: "none",
+  "package manager": "npm",
+};
+
 const run = (argv: string[], extra: Partial<CliEnv>) =>
   main(argv, {
     cwd,
@@ -46,17 +57,24 @@ const run = (argv: string[], extra: Partial<CliEnv>) =>
 const read = (f: string) => readFileSync(join(cwd, "app", f), "utf8");
 
 describe("create on a TTY without flags", () => {
-  it("asks for contracts, wallet, local network, environments and styling, and applies the answers", async () => {
+  it("asks every question in order and applies the answers", async () => {
     const s = scripted({
-      contracts: "hello-world",
+      ...defaults,
       wallet: "extension",
       "local network": true,
       environments: true,
-      styl: "none",
     });
     const r = await run(["app"], s.env);
     expect(r.exitCode, r.stderr).toBe(0);
-    expect(s.asked).toEqual(["contracts", "wallet", "local network", "environments", "styl"]);
+    expect(s.asked).toEqual([
+      "contracts",
+      "which network",
+      "wallet",
+      "local network",
+      "environments",
+      "styl",
+      "package manager",
+    ]);
     expect(read("lib/wallet/index.ts")).toContain("@stellar/varial-sdk");
     expect(JSON.parse(read("package.json")).scripts["network:start"]).toBeDefined();
     expect(existsSync(join(cwd, "app/stellar.envs.toml"))).toBe(true);
@@ -64,12 +82,7 @@ describe("create on a TTY without flags", () => {
   });
 
   it("does not ask about environments when no contract workspace is chosen", async () => {
-    const s = scripted({
-      contracts: "none",
-      wallet: "none",
-      "local network": false,
-      styl: "tailwind",
-    });
+    const s = scripted({ ...defaults, contracts: "none" });
     const r = await run(["app"], s.env);
     expect(r.exitCode, r.stderr).toBe(0);
     expect(s.asked).not.toContain("environments");
@@ -78,7 +91,7 @@ describe("create on a TTY without flags", () => {
   it("asks for the contract ID when that option is chosen, and validates it", async () => {
     const id = `C${"B".repeat(55)}`;
     let validate: ((v: string | undefined) => string | undefined) | undefined;
-    const s = scripted({ contracts: "id", wallet: "none", "local network": false, styl: "none" });
+    const s = scripted({ ...defaults, contracts: "id" });
     const prompt: PromptFn = async (q) => {
       validate = q.validate;
       s.asked.push("contract id");
@@ -92,10 +105,39 @@ describe("create on a TTY without flags", () => {
     expect(read(".env")).toContain(`NEXT_PUBLIC_STELLAR_CONTRACT_ID=${id}`);
   });
 
+  it("applies mainnet when chosen, with no RPC URL shipped (INV-02)", async () => {
+    const s = scripted({ ...defaults, contracts: "none", "which network": "mainnet" });
+    const r = await run(["app"], s.env);
+    expect(r.exitCode, r.stderr).toBe(0);
+    expect(read(".env")).toContain("NEXT_PUBLIC_STELLAR_NETWORK=mainnet\n");
+    expect(read(".env")).toContain("NEXT_PUBLIC_STELLAR_RPC_URL=\n");
+  });
+
+  it("offers every package manager, preselecting the detected one, and uses the answer", async () => {
+    let initial = "";
+    let offered: string[] = [];
+    const s = scripted({ ...defaults, contracts: "none" });
+    const select: SelectFn = async (q) => {
+      if (!q.message.toLowerCase().includes("package manager")) return s.env.select(q);
+      initial = q.initialValue;
+      offered = q.options.map((o) => o.value);
+      return "pnpm";
+    };
+    const r = await run(["app"], { ...s.env, select, userAgent: "yarn/1.22.22 npm/? node/v24" });
+    expect(r.exitCode, r.stderr).toBe(0);
+    expect(initial).toBe("yarn");
+    expect(offered).toEqual(["npm", "pnpm", "yarn", "bun"]);
+    expect(r.stdout).toContain("pnpm dev");
+  });
+
   it("skips the questions whose flags were given", async () => {
     const s = scripted({ "local network": false, environments: false });
     const r = await run(
-      ["app", "--contracts", "hello-world", "--wallet", "none", "--style", "none"],
+      [
+        "app",
+        ...["--contracts", "hello-world", "--network", "testnet", "--wallet", "none"],
+        ...["--style", "none", "--package-manager", "npm"],
+      ],
       s.env,
     );
     expect(r.exitCode, r.stderr).toBe(0);
@@ -103,7 +145,7 @@ describe("create on a TTY without flags", () => {
   });
 
   it("treats --envs as choosing the contract workspace, without asking", async () => {
-    const s = scripted({ wallet: "none", "local network": false, styl: "none" });
+    const s = scripted(defaults);
     const r = await run(["app", "--envs"], s.env);
     expect(r.exitCode, r.stderr).toBe(0);
     expect(s.asked).not.toContain("contracts");
