@@ -85,7 +85,7 @@ Three deliverables:
 
 ### §1.2 The product in one paragraph
 
-One `npx` command writes a standard Next.js App Router app, an optional Rust contracts workspace, and typed contract clients. The output has no runtime dependency on the tool. Contracts are built and deployed with the stock Stellar CLI. Testnet is the default network. Wallets, a local network, the contract registry and declarative environments are each one flag, all off by default. Every command runs without prompts and can print JSON.
+One `npx` command writes a standard Next.js App Router app, an optional Rust contracts workspace, and typed contract clients. The output has no runtime dependency on the tool. Contracts are built and deployed with the stock Stellar CLI. Testnet is the default network. Wallets, a local network and declarative environments are each one flag, all off by default (the registry was dropped from v0, DEC-025). Every command runs without prompts and can print JSON.
 
 ### §1.3 Fixed decisions
 
@@ -98,7 +98,7 @@ Not to be reopened without the human.
 | Contract scope | Full stack: Rust workspace, build, deploy, typed clients |
 | Default network | Testnet. Local network only with `--local` |
 | Wallet | None by default. Chosen at init or with `add wallet` |
-| Registry | Off by default. `--registry` wraps the existing `stellar registry` CLI |
+| Registry | Dropped from v0 by the human on 2026-11-17 (DEC-025). Was: off by default, `--registry` wrapping `stellar registry` |
 | Declarative environments | Off by default. `--envs` adds `stellar.envs.toml` |
 | Agent support | `AGENTS.md`, `--yes`, `--json`, `--dry-run`, `check`, `doctor`, bundled docs |
 
@@ -111,7 +111,7 @@ G0 passes: CI is green on Linux, macOS and Windows; every fact in §6.3 that T-0
 All eight phase gates have passed and the repository holds:
 
 - [ ] CLI with `create`, `add` and `doctor`, passing unit and end-to-end tests on Linux, macOS and Windows
-- [ ] Templates for base, contracts, each verified wallet option, local, registry and envs
+- [ ] Templates for base, contracts, each verified wallet option, local and envs (registry dropped, DEC-025)
 - [ ] Bundled docs, `llms.txt`, and the verified-facts log (`docs/SOURCES.md`, see Q-02)
 - [ ] Benchmark harness, task prompts, graders, pinned image definition and raw results
 - [ ] `REPORT.md` (layout in §9.4)
@@ -126,6 +126,7 @@ From the v0 documentation ("Not in v0") and the plan's safety limits:
 - A hosted template gallery, or example apps beyond hello-world.
 - An MCP server. The CLI is the interface for agents.
 - Contract metadata injection from `Cargo.toml`, and OpenZeppelin Wizard import.
+- The contract registry (`--registry`, `add registry`) and the passkeys wallet option. Both dropped by the human on 2026-11-17 (DEC-025).
 - A runtime library of any kind.
 - Publishing the package, or any mainnet activity by the agent.
 
@@ -163,7 +164,7 @@ create-stellar-next/
 ├── src/
 │   ├── cli.ts            # argument parsing, prompts, JSON output, exit codes
 │   ├── commands/         # create.ts, add.ts, doctor.ts
-│   ├── modules/          # one folder per module: base, contracts, wallet-*, local, registry, envs
+│   ├── modules/          # one folder per module: base, core, contracts, wallet-*, local, envs
 │   └── lib/              # file writer with edit detection, command runner, checks
 ├── templates/            # files copied into projects, grouped by module
 ├── docs/
@@ -236,7 +237,6 @@ my-app/
 | `contracts:bindings` | The SDK client generator into `packages/` |
 | `check` | Typecheck, lint, contract tests, `next build` |
 | `network:start` | Only with `--local`: `stellar container start local` |
-| `registry:publish`, `registry:deploy` | Only with `--registry` |
 | `envs:apply -- <env>` | Only with `--envs`. Prints each stock command before running it |
 
 Configuration is `.env` only: `NEXT_PUBLIC_STELLAR_NETWORK`, `NEXT_PUBLIC_STELLAR_RPC_URL`, `STELLAR_ACCOUNT` (an identity name). Contract IDs are Stellar CLI aliases named `<project>-<contract>`; `setup` copies each ID into the generated `packages/contract-ids.json`, keyed by network, for the app to read (DEC-016).
@@ -267,7 +267,7 @@ None of these is enforced today: no test exists. Each names the task that adds i
 | INV-02 | The default network is testnet. A local network appears only with `--local`. No default config targets mainnet and no mainnet RPC URL is shipped | Unit and e2e tests on `.env.example` (T-103) |
 | INV-03 | A mainnet deploy requires `--confirm-mainnet`. Without it the deploy script prints the command it would run and exits | Script test with a stubbed runner (T-203, T-402) |
 | INV-04 | No secret key is ever written. Config and logs hold identity names only | Secret-pattern scan over generated projects and test output (T-203), and over benchmark results (T-601) |
-| INV-05 | Wallet, local network, registry and envs are off by default. With a flag off, no file from that module exists | e2e file-list assertions (T-103, T-302, T-401, T-402) |
+| INV-05 | Wallet, local network and envs are off by default. With a flag off, no file from that module exists | e2e file-list assertions (T-103, T-302, T-401, T-402) |
 | INV-06 | No command prompts without a TTY or with `--yes`. No command hangs waiting for input | e2e with stdin closed and a timeout (T-104) |
 | INV-07 | `--json` prints exactly one JSON object on stdout with `files`, `next` and `errors`, valid against the committed schema | Schema validation test (T-104, T-301) |
 | INV-08 | Exit codes: `0` success, `1` failure, `2` invalid arguments, `3` missing prerequisite | Negative-case tests (T-104, T-301) |
@@ -288,17 +288,16 @@ None of these is enforced today: no test exists. Each names the task that adds i
 
 ```bash
 npx create-stellar-next <dir> [flags]          # create
-npx create-stellar-next add <module> [flags]   # wallet | contract | local | registry | envs
+npx create-stellar-next add <module> [flags]   # wallet | contract | local | envs
 npx create-stellar-next doctor [flags]
 ```
 
 | Flag | Values | Default |
 |---|---|---|
 | `--contracts` | `hello-world`, `none`, or a contract ID | `hello-world` |
-| `--wallet` | `none`, `wallets-kit`, `extension`, `passkeys` | `none` |
+| `--wallet` | `none`, `wallets-kit`, `extension` (passkeys dropped, DEC-025) | `none` |
 | `--network` | `testnet`, `mainnet` | `testnet` |
 | `--local` | boolean | off |
-| `--registry` | boolean | off |
 | `--envs` | boolean | off |
 | `--style` | `tailwind`, `none` | `tailwind` |
 | `--package-manager` | `npm`, `pnpm`, `yarn`, `bun` | detected |
@@ -313,7 +312,7 @@ Behaviour rules:
 - `add` is idempotent. A second run changes nothing. It refuses to overwrite a file the user edited unless `--force` is set.
 - Every error names the cause and the command that fixes it.
 - `add` works in a Next.js project the tool did not create.
-- `doctor` checks Node, Rust, the Stellar CLI, Docker (only with `--local`), the registry CLI (only with `--registry`), and whether the configured identity exists and is funded (v0 documentation).
+- `doctor` checks Node, Rust, the Stellar CLI, Docker (only with `--local`), and whether the configured identity exists and is funded (v0 documentation).
 
 ### §5.2 Exit codes
 
@@ -415,7 +414,7 @@ Sources are in `docs/SOURCES.md`.
 | npm / pnpm / yarn / bun | 11.16.0 / 11.21.0 / 1.22.22 / 1.4.2 | All four `--package-manager` values are installed |
 | rustc / cargo | 1.95.0 / 1.95.0 | Installed targets: `aarch64-apple-darwin`, `wasm32v1-none` |
 | Stellar CLI | 30.0.1 from Homebrew, first on `PATH` | A second, older binary, 28.1.0, sits in `~/.cargo/bin` and is shadowed. The v0 documentation was verified against 28.1.0 |
-| Stellar CLI plugins | `scaffold` installed. No `registry` | `stellar-registry-cli` is needed from M4 |
+| Stellar CLI plugins | `scaffold` installed. No `registry` | Not needed: the registry was dropped (DEC-025) |
 | Docker | client 29.9.2, **daemon not running** | Needed from M2 (Q-13) |
 | git / gh | 2.54.0 / 2.92.0 | `gh` is logged in. No remote exists (Q-05) |
 
@@ -448,12 +447,12 @@ The plan lists V-01 to V-08 as "confirmed on 2026-11-12, to recheck". None has b
 | V-07 | **Contradicted in part.** Version 2 is on JSR as `@creit-tech/stellar-wallets-kit` and on npm as `@creit.tech/stellar-wallets-kit`. Both are at 2.8.0, and npm has had v2 since 2.0.0 on 2026-02-21. The vendor's README installs it with `npx jsr add @creit-tech/stellar-wallets-kit` (2026-11-17, package registries: `npm view`, `https://jsr.io/@creit-tech/stellar-wallets-kit/meta.json`). Raven has no page on the install path. See Q-19 | blocked: Q-19 |
 | V-08 | Confirmed, with a precise floor: `@stellar/stellar-sdk` 17.4.0 declares `engines.node >=22.12.0` and `"type": "module"`, and also ships a CommonJS build. `@stellar/stellar-base` 15.0.0 is deprecated on npm: "rolled into @stellar/stellar-sdk", which exposes it as the `@stellar/stellar-sdk/base` subpath (2026-11-17, `npm view`). The docs say SDK v17 is current (Raven) | done |
 | V-09 | Resolved: the `extension` option uses `@stellar/varial-sdk` (7.0.0). Varial is the new name of Freighter, SDF's browser extension wallet, and "`@stellar/varial-sdk` is the new name of `@stellar/freighter-api`. Dapps already using `@stellar/freighter-api` keep working, but new methods ship only in `@stellar/varial-sdk`" (2026-11-17, Raven `stellarDocs.get_doc_page` /docs/build/guides/freighter/prompt-to-sign-tx; `npm view`). The plan's two sources did not disagree: they name the same wallet before and after a rename | done |
-| V-10 | `[VERIFY: "stellar registry" commands for publish and deploy, and how stellar-registry-cli is installed]` | T-401 |
+| V-10 | Not needed: the registry was dropped from v0 (DEC-025) | dropped |
 | V-11 | `[VERIFY: Scaffold Stellar's official quickstart, its prerequisites, and the environments.toml format]` | T-403, T-602 |
 | V-12 | Confirmed: `stellar contract alias show [OPTIONS] <ALIAS>` shows the contract ID for an alias (2026-11-17, Raven `stellarDocs` search, asOf 2026-11-17 CLI manual) | done |
 | V-13 | Confirmed: testnet RPC `https://soroban-testnet.stellar.org` (Raven, getNetwork and SDK helper pages), passphrase `Test SDF Network ; September 2015` (installed `stellar network ls --long`, 30.0.1, and Raven keys cookbook) | done |
 | V-14 | Confirmed early: the CLI's built-in `local` network is RPC `http://localhost:8000/rpc`, passphrase `Standalone Network ; February 2017` (2026-11-17, installed `stellar network ls --long`, 30.0.1) | done |
-| V-15 | Checked: the docs' passkey kit is Smart Account Kit (`smart-account-kit`, github.com/stellar/smart-account-kit; Passkey Kit is a sibling with its own contract, not audited). The guestbook tutorial needs an OpenZeppelin relayer API key (generated at channels.openzeppelin.com), the smart-account Wasm hash, a WebAuthn verifier address, the native token contract, and a server-side proxy route (2026-11-17, Raven `get_doc_page` /docs/build/apps/guestbook/setup-passkeys, /passkeys-prerequisites, /docs/build/guides/contract-accounts/smart-wallets). See Q-22 | blocked: Q-22 |
+| V-15 | Checked: the docs' passkey kit is Smart Account Kit (`smart-account-kit`, github.com/stellar/smart-account-kit; Passkey Kit is a sibling with its own contract, not audited). The guestbook tutorial needs an OpenZeppelin relayer API key (generated at channels.openzeppelin.com), the smart-account Wasm hash, a WebAuthn verifier address, the native token contract, and a server-side proxy route (2026-11-17, Raven `get_doc_page` /docs/build/apps/guestbook/setup-passkeys, /passkeys-prerequisites, /docs/build/guides/contract-accounts/smart-wallets). See Q-22 | dropped (DEC-025) |
 | V-16 | Pin 30.0.1: the installed binary and Homebrew's current stable (checked 2026-11-17, `stellar --version`, `brew info stellar-cli`) | done |
 | V-17 | Resolved: Next.js 16.4.6. `create-next-app` 16.4.6 writes `AGENTS.md` (a block that `next dev` re-adds) but no `CLAUDE.md`; it wires Tailwind 4.3.3 through `@tailwindcss/turbopack` in `next.config.ts`, enables `cacheComponents` and `partialPrefetching`, and resolves React 19.3.0, TypeScript 5.9.3 and ESLint 9.39.5 (2026-11-17, a reference project generated with `npx create-next-app@16.4.6`; `npm view`) | done |
 | V-18 | `[VERIFY: how each benchmark agent runs headless with a turn, time and token limit, and how its version is read]` | T-601 |
@@ -529,7 +528,7 @@ The human reviews at each. A gate that cannot pass after three distinct attempts
 | G1 | On all three operating systems, a generated project installs and `npm run check` passes. `--dry-run` writes nothing. `--json` output validates against a schema in the repository |
 | G2 | In CI, `create --yes` then `setup` then a Playwright check shows the contract's response on the page. This runs against a local network container on every pull request and against testnet nightly. `setup` run twice leaves the project unchanged |
 | G3 | Idempotency tests pass for every module. `add` on a fresh `create-next-app` project produces a project that passes `check`. `doctor --json` reports a deliberately removed prerequisite with exit code `3` |
-| G4 | `envs:apply --dry-run` output matches a stored snapshot. `envs:apply` on a local network deploys the declared contract. With both flags off, no registry or environment file exists in the generated project |
+| G4 | `envs:apply --dry-run` output matches a stored snapshot. `envs:apply` on a local network deploys the declared contract. Without `--envs`, no environment file exists in the generated project (the registry criterion was removed with the registry, DEC-025) |
 | G5 | A docs test confirms every command named in `AGENTS.md` and the bundled docs exists and runs. The generated `AGENTS.md` is under 80 lines |
 | G6 | The full matrix has run, raw results are committed, and the results tables in `REPORT.md` are produced by a script from the raw data |
 | G7 | The tarball passes the G2 end-to-end test. Nothing is published. Hand back to the human |
@@ -540,9 +539,9 @@ The human reviews at each. A gate that cannot pass after three distinct attempts
 
 ### §9.1 Milestones
 
-Current milestone: **M3**. A milestone does not start while the previous gate is failing.
+Current milestone: **M4**. A milestone does not start while the previous gate is failing.
 
-Gate approvals: G0 approved by the human on 2026-11-17 ("Reviewed. Approved. Resume"), with CI not yet run because no remote exists. See DEC-008. G1 approved by the human on 2026-11-17 ("Approved, resume"), on the same terms: CI not yet run, T-105 stays `blocked` until its CI job is green. G2 approved by the human on 2026-11-17 ("approved, resume"), on the same terms: T-207 stays `blocked` until its CI job is green.
+Gate approvals: G0 approved by the human on 2026-11-17 ("Reviewed. Approved. Resume"), with CI not yet run because no remote exists. See DEC-008. G1 approved by the human on 2026-11-17 ("Approved, resume"), on the same terms: CI not yet run, T-105 stays `blocked` until its CI job is green. G2 approved by the human on 2026-11-17 ("approved, resume"), on the same terms: T-207 stays `blocked` until its CI job is green. G3: after the M3 report the human said "drop passkey from v0, drop registry also. then resume" without an explicit approval; M4 has started, and T-301 to T-304 stay in `review` until the human approves G3.
 
 | Milestone | Plan phase | Gate |
 |---|---|---|
@@ -586,8 +585,9 @@ A dependency written `G1` means the human has approved that gate.
 | T-302 | `add contract` and `add local` | T-301 | INV-05, INV-10, INV-11, V-05, V-14 | review | Each is idempotent (second run, no diff); each refuses an edited file without `--force`; `network:start` exists only with local |
 | T-303 | `add wallet` for each verified option | T-302, T-003 | §5.5, V-07, V-09, V-15 | review (wallets-kit, extension; passkeys moved to T-305) | Each option implements `connect`, `disconnect`, `getAddress`, `signTransaction` in `lib/wallet/index.ts`; rerunning with another option swaps the adapter without touching pages; idempotent; `create --wallet` uses the same module |
 | T-304 | `add` in a project the tool did not create | T-303 | §5.1, INV-10 | review | A fresh `create-next-app` project plus `add` passes `check`; idempotency holds there too |
-| T-305 | `--wallet passkeys` and `add wallet --wallet passkeys` | T-303 | §5.5, V-15, Q-22 | blocked: Q-22 | Passkey smart wallet behind the same `lib/wallet` interface, or a recorded decision to drop the option |
-| T-401 | Registry module | G3 | INV-05, V-10 | todo | Commands verified first; `registry:publish` and `registry:deploy` wrap `stellar registry`; `contracts:deploy` is unchanged; `doctor` checks for the registry CLI; no registry file when the flag is off |
+| T-305 | `--wallet passkeys` and `add wallet --wallet passkeys` | T-303 | §5.5, V-15, Q-22 | dropped (DEC-025) | Passkey smart wallet behind the same `lib/wallet` interface, or a recorded decision to drop the option |
+| T-306 | Drop passkeys and the registry from v0 | T-304 | §1, §5.1, DEC-025 | review | `--wallet passkeys`, `--registry` and `add registry` are argument errors (exit 2); the spec no longer promises either |
+| T-401 | Registry module | G3 | INV-05, V-10 | dropped (DEC-025) | Commands verified first; `registry:publish` and `registry:deploy` wrap `stellar registry`; `contracts:deploy` is unchanged; `doctor` checks for the registry CLI; no registry file when the flag is off |
 | T-402 | Envs module | G3 | §5.6, INV-03, INV-05, INV-10, INV-14 | todo | Parses `stellar.envs.toml`; plans the stock commands; prints each, then runs it; `envs:apply --dry-run` matches a stored snapshot; `envs:apply` on a local network deploys the declared contract; never starts Docker itself; no envs file when the flag is off; TOML parser DEC |
 | T-403 | Scaffold Stellar `environments.toml` mapping | T-402 | V-11, Q-09 | todo | Tested against Scaffold Stellar's documented examples; what maps and what does not is recorded for `REPORT.md` |
 | T-501 | Generated `AGENTS.md`, bundled docs, `llms.txt`, docs test | G4 | §5.7, INV-15 | todo | The docs test is written first and asserts that every command named in `AGENTS.md` and the bundled docs exists and runs; `AGENTS.md` is under 80 lines with the layout, scripts, pointers and six rules |
@@ -922,6 +922,12 @@ Decision:
 Alternatives: require `create` and refuse foreign projects (rejected: §5.1 requires `add` to work there). Rewrite the foreign project's `dev` to start the watcher (rejected: changes a script the user owns).
 Consequences: §3.4 and §5.5. G3's second criterion verified for real: `npx create-next-app@16.4.6`, then `add contract` and `add wallet --wallet extension`, then `setup` on the local network and `check` (all four steps passed); both `add` commands again left `git status` empty. The project e2e still passes for both styles.
 
+### DEC-025: Passkeys and the registry are out of v0 (2026-11-17, T-306)
+Context: the passkeys wallet option needed a third-party relayer key, extra network addresses and a server route, and did not fit the shared wallet interface (Q-22). The registry module was next in M4. The human decided: "drop passkey from v0, drop registry also."
+Decision: `--wallet` accepts `none`, `wallets-kit` and `extension`. `--registry` is no longer a flag and `registry` is no longer an `add` target; both are ordinary argument errors (exit 2). T-305 and T-401 are dropped, V-10 and V-15 are no longer needed, and G4 loses its registry criterion. M4 is now the envs module (T-402, T-403).
+Alternatives: keep both as "not built yet" (rejected: the human removed them from scope, so the CLI should not suggest they are coming).
+Consequences: §1.2, §1.3, §1.5, §1.6, §3.1, §3.4, §4 (INV-05), §5.1, §6.1a, §8.3 (G4), §9.2. The reference documents still describe both and are left unchanged (§5.9). `REPORT.md` lists this as a deviation from the plan.
+
 ## §11 Open questions
 
 Each has a default. "Blocks" names the first task that cannot finish without an answer. An answer of "use the default" is enough.
@@ -935,6 +941,7 @@ Each has a default. "Blocks" names the first task that cannot finish without an 
 | Q-03 | Default taken with the approval: `PROGRESS.md` is dropped |
 | Q-05 | The human will create the GitHub repository and add it as `origin`. Until then work stays on local branches and T-006 cannot show CI green |
 | Q-06 | Apache-2.0 |
+| Q-22 | Passkeys dropped from v0 by the human (DEC-025) |
 | Q-08 | Resolved from the docs in T-003, not by the human: `@stellar/varial-sdk`, the renamed `@stellar/freighter-api` (V-09). All three wallet options stay in scope |
 | Q-04 | Default taken with the approval: (a) installed CLI output counts as installed source; (b) a fact Raven cannot ground goes to the human |
 
@@ -955,7 +962,6 @@ The human answered Q-01 explicitly. Q-02 to Q-04 were taken as the defaults writ
 |---|---|---|---|
 | Q-07 (answered in T-201) | Does `create` run the package manager install? The plan does not say. The v0 quickstart has no install step and describes `--package-manager` as "used for install", which implies yes | Yes. Skipped under `--dry-run` | T-103 |
 | Q-20 (answered in T-203, DEC-016) | Stellar CLI aliases and identities are global by default (`~/.config/stellar`). A generated `setup` that deploys with `--alias hello_world` would silently replace another project's alias of the same name. The plan fixes "contract IDs are Stellar CLI aliases" but says nothing about scope. Is a per-project scope acceptable, and which form? | Decide in T-203 between a project-local `--config-dir` and project-prefixed alias names, check the chosen form against the CLI, log a DEC, and keep `STELLAR_ACCOUNT` an identity name either way | T-203 |
-| Q-22 | Passkeys. The documented passkey path (Smart Account Kit, as in the guestbook tutorial) needs an OpenZeppelin relayer API key from a third-party service, several network-specific addresses, and a server-side route that keeps the key out of the browser. Its accounts are smart contracts (`C…`) that sign auth entries and submit through the relayer, which does not map cleanly onto `signTransaction(xdr)`. The plan forbids the agent from creating accounts, and adding a service is an "ask" item. Ship passkeys (and if so: who provides a testnet key for testing, and may the shared interface change), or drop the option from v0? | Not built. `--wallet passkeys` exits 1 with this reason; wallets-kit and extension ship | T-305 |
 | Q-21 | Bundled docs and INV-01 conflict. The v0 documentation says the package ships its docs in `node_modules/create-stellar-next/docs/`, but a generated project has no dependency on the tool, so that path never exists in the project. Should the bundled docs be copied into the project, for example under `docs/stellar/`? | Copy them into the project at create time, owned like any other generated file | T-501 |
 | Q-19 (answered 2026-11-17, DEC-023) | V-07 is contradicted in part. The plan says Stellar Wallets Kit v2 is "on JSR, not npm". Both registries publish 2.8.0, though the vendor's README installs from JSR. Which should the `wallets-kit` module install? | JSR, as the vendor documents: `npx jsr add @creit-tech/stellar-wallets-kit`. The npm copy is noted in the bundled docs | T-303 |
 | Q-09 | `stellar.envs.toml` format | Own minimal format. Also accept Scaffold Stellar's `environments.toml` if it maps cleanly | T-402 |

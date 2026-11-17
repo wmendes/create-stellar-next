@@ -184,14 +184,14 @@ describe("add, other cases", () => {
     expect(r.stderr).toContain("package.json");
   });
 
-  it.each([["registry"], ["envs"]])("reports add %s as not built yet", async (m) => {
+  it.each([["envs"]])("reports add %s as not built yet", async (m) => {
     const r = await add(m);
     expect(r.exitCode).toBe(1);
     expect(r.stderr).toContain("not built yet");
   });
 
-  it("rejects an unknown module with exit 2", async () => {
-    expect((await add("database")).exitCode).toBe(2);
+  it.each([["database"], ["registry"]])("rejects add %s with exit 2", async (m) => {
+    expect((await add(m)).exitCode).toBe(2);
   });
 });
 

@@ -95,10 +95,9 @@ the project in the current directory with doctor (exit 3 when a check fails).
 
 Options:
   --contracts <value>        hello-world | none | <contract id>  (default: hello-world)
-  --wallet <value>           none | wallets-kit | extension | passkeys  (default: none)
+  --wallet <value>           none | wallets-kit | extension  (default: none)
   --network <value>          testnet | mainnet  (default: testnet)
   --local                    Add a local network (Docker)
-  --registry                 Add Stellar registry scripts
   --envs                     Add declarative environments (stellar.envs.toml)
   --style <value>            tailwind | none  (default: tailwind)
   --package-manager <value>  npm | pnpm | yarn | bun  (default: detected)
@@ -111,7 +110,7 @@ Options:
 `;
 
 const CHOICES = {
-  wallet: ["none", "wallets-kit", "extension", "passkeys"],
+  wallet: ["none", "wallets-kit", "extension"],
   network: ["testnet", "mainnet"],
   style: ["tailwind", "none"],
   "package-manager": PACKAGE_MANAGERS,
@@ -207,8 +206,7 @@ async function runCreate(
       `--contracts must be hello-world, none, or a contract ID (C followed by 55 characters). Got "${contracts}".`,
     );
   }
-  if (values.wallet === "passkeys") return passkeysNotBuilt();
-  for (const flag of ["registry", "envs"] as const) {
+  for (const flag of ["envs"] as const) {
     if (values[flag]) {
       return fail(
         ExitCode.Failure,
@@ -309,7 +307,7 @@ async function runCreate(
   };
 }
 
-const ADD_TARGETS = ["contract", "local", "wallet", "registry", "envs"];
+const ADD_TARGETS = ["contract", "local", "wallet", "envs"];
 
 async function runAdd(
   { values, positionals }: ReturnType<typeof parse>,
@@ -320,12 +318,11 @@ async function runAdd(
     return invalid(`add needs one of: ${ADD_TARGETS.join(", ")}. Got "${target ?? ""}".`);
   }
   if (target === "wallet") {
-    if (values.wallet === undefined || values.wallet === "none") {
+    if (values.wallet !== "wallets-kit" && values.wallet !== "extension") {
       return invalid("add wallet needs --wallet wallets-kit or --wallet extension.");
     }
-    if (values.wallet === "passkeys") return passkeysNotBuilt();
   }
-  if (target === "registry" || target === "envs") {
+  if (target === "envs") {
     return fail(
       ExitCode.Failure,
       "NOT_BUILT",
@@ -395,15 +392,6 @@ async function runAdd(
   };
 }
 
-function passkeysNotBuilt(): Outcome {
-  return fail(
-    ExitCode.Failure,
-    "NOT_BUILT",
-    "--wallet passkeys is not built yet: passkey smart wallets need a relayer API key from a third-party service, which is waiting on a decision (SPEC Q-22).",
-    "Use --wallet wallets-kit or --wallet extension for now.",
-  );
-}
-
 /** Version of schemas/doctor.schema.json that `doctor --json` follows. */
 export const DOCTOR_SCHEMA_VERSION = 1;
 
@@ -459,7 +447,6 @@ function parse(argv: readonly string[]) {
       wallet: { type: "string" },
       network: { type: "string" },
       local: { type: "boolean" },
-      registry: { type: "boolean" },
       envs: { type: "boolean" },
       style: { type: "string" },
       "package-manager": { type: "string" },

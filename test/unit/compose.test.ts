@@ -118,12 +118,12 @@ describe("base module with tailwind on testnet", () => {
     expect(out.has(MANIFEST_FILE)).toBe(false);
   });
 
-  it("writes no wallet, local network, registry or envs file (INV-05)", () => {
+  it("writes no wallet, local network or envs file (INV-05)", () => {
     for (const path of out.keys()) {
       expect(path).not.toMatch(/^lib\/wallet\/|stellar\.envs\.toml|environments\.toml/);
     }
     const scripts = Object.keys(pkgOf(out).scripts);
-    expect(scripts.filter((s) => /^(network|registry|envs):/.test(s))).toEqual([]);
+    expect(scripts.filter((s) => /^(network|envs):/.test(s))).toEqual([]);
   });
 });
 

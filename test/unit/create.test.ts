@@ -134,7 +134,7 @@ describe("invalid arguments exit 2 and name the fix", () => {
 });
 
 describe("options not built yet", () => {
-  it.each([[["my-app", "--contracts", "none", "--wallet", "passkeys"], "--wallet wallets-kit"]])(
+  it.each([[["my-app", "--contracts", "none", "--envs"], "--envs"]])(
     "%j fails with exit 1, writes nothing and says what works today",
     async (argv, works) => {
       const result = await run(...argv);

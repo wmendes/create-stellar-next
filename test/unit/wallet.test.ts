@@ -73,12 +73,18 @@ describe("wallet commands", () => {
     await rm(cwd, { recursive: true, force: true });
   });
 
-  it("create --wallet passkeys is not built yet and says why", async () => {
-    const r = await main(["p", "--yes", "--contracts", "none", "--wallet", "passkeys"], env(cwd));
-    expect(r.exitCode).toBe(1);
-    expect(r.stderr).toContain("relayer");
-    expect(existsSync(join(cwd, "p"))).toBe(false);
-  });
+  it.each([
+    ["create", ["p", "--yes", "--contracts", "none", "--wallet", "passkeys"]],
+    ["add", ["add", "wallet", "--wallet", "passkeys"]],
+  ])(
+    "%s rejects --wallet passkeys, which is not in v0 (DEC-025), with exit 2",
+    async (_label, argv) => {
+      const r = await main(argv as string[], env(argv[0] === "add" ? app : cwd));
+      expect(r.exitCode).toBe(2);
+      expect(r.stderr).toContain("wallets-kit");
+      expect(existsSync(join(cwd, "p"))).toBe(false);
+    },
+  );
 
   it("add wallet needs --wallet", async () => {
     const r = await main(["add", "wallet"], env(app));
