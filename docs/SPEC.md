@@ -572,10 +572,10 @@ A dependency written `G1` means the human has approved that gate.
 | T-006 | CI on Linux, macOS and Windows | T-005 | §8, §11 Q-05 | blocked: Q-05, workflow written, not yet run | A GitHub Actions matrix runs every §8.2 every-task gate in locked mode on the three systems and is green. Needs Q-05 |
 | T-101 | File writer with edit detection | G0 | §3.2, §5.4, INV-09, INV-11 | review | Hashes recorded in `.create-stellar-next.json`; an unchanged file is rewritten without complaint; an edited file is refused without `--force`; dry-run mode writes nothing; property test: writing the same plan twice changes nothing |
 | T-102 | Module format and base module | T-101 | §3.2, §3.4, §3.5, V-17 | review | A module is data plus files (files, scripts, dependencies, `.env` keys, doctor checks); base template has one page, `lib/stellar.ts`, `.env.example`, `AGENTS.md`, a one-line `CLAUDE.md` and the `check` script; templates lint and typecheck in place; Tailwind by default and `--style none` omits it |
-| T-103 | `create` for `--contracts none --wallet none` | T-102 | §5.1, INV-01, INV-02, INV-05, Q-07 | todo | Generates a project in a temp directory; nothing in it depends on the tool; `.env.example` targets testnet; no wallet, local, registry or envs file exists |
+| T-103 | `create` for `--contracts none --wallet none` | T-102 | §5.1, INV-01, INV-02, INV-05, Q-07 | review | Generates a project in a temp directory; nothing in it depends on the tool; `.env.example` targets testnet; no wallet, local, registry or envs file exists |
 | T-104 | Non-interactive surface | T-103 | §5.1–§5.3, INV-06 to INV-09, INV-12 | todo | `--yes`, `--json`, `--dry-run`, `--force`; no TTY behaves as `--yes`; exit codes 0, 1, 2, 3 each have a negative-case test; JSON validates against the committed schema; argument parser and prompt library DEC |
 | T-105 | Generated-project e2e in CI | T-104, T-006 | §8 | todo | On three systems: built CLI → temp directory → install → `npm run check` passes; `--dry-run` leaves the directory untouched |
-| T-201 | Command runner | G1 | B-1, INV-09, INV-12, INV-14 | todo | One function; logs the exact command; `--dry-run` prints and does not execute; a failure becomes an error naming the cause and the fix; a missing binary exits `3` |
+| T-201 | Command runner | G1 | B-1, INV-09, INV-12, INV-14 | todo | One function; logs the exact command; `create` runs the package-manager install through it (Q-07, DEC-011); `--dry-run` prints and does not execute; a failure becomes an error naming the cause and the fix; a missing binary exits `3` |
 | T-202 | Contracts module | T-201 | §3.4, V-06 | todo | Calls `stellar contract init`; adds the `contracts:*` scripts; writes `lib/contracts.ts`; the root `AGENTS.md` links to the one in `contracts/` |
 | T-203 | `setup` script | T-202 | INV-03, INV-04, INV-10, V-01 to V-04, V-12 | todo | Identity, build, deploy with alias, generate client; a second run leaves the tree hash unchanged; identities by name only; secret-scan gate added |
 | T-204 | Example page | T-203 | §3.4 | todo | The home page shows the hello-world contract's response with no wallet |
@@ -782,6 +782,12 @@ Decision:
 - Biome now formats with two-space indentation and lines of 100 characters, like the Next.js templates. This reformatted the existing source; no behaviour changed.
 Alternatives: a template language such as EJS or Handlebars (rejected: the plan forbids it). Copying `create-next-app`'s output at run time (rejected: a runtime dependency on another generator and its network access). TypeScript 7 in generated projects (rejected: not what Next 16.4.6 was tested with).
 Consequences: §3.2, §5.5, §8.2. Verified by generating both style variants with the built composer, installing them and running `npm run check`; both passed.
+
+### DEC-011: `create` writes files only until the command runner exists (2026-11-17, T-103)
+Context: Q-07's default is that `create` runs the package-manager install. B-1 requires every package-manager call to go through the one command runner, which is T-201 in M2.
+Decision: in M1, `create` writes the files and prints the install command as its first "next" step. T-201 adds the install, through the runner, skipped under `--dry-run`. The project name is the target directory's base name and must be a valid npm package name. The package manager comes from `--package-manager`, else from `npm_config_user_agent`, else npm. Options from later milestones fail with exit 1, write nothing, and say what works today. Running `create` again on its own output changes nothing, and an edited file is refused without `--force`, through the T-101 writer.
+Alternatives: an install call outside the runner now (rejected: breaks B-1). Building part of the runner in T-103 (rejected: out of scope for this task).
+Consequences: until M2, `create <dir>` with no flags exits 1, because the default `--contracts hello-world` is not built. G1's end-to-end test runs the install itself. Q-07's default stays, and T-201 implements it.
 
 ## §11 Open questions
 
