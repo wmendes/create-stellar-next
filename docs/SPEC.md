@@ -1,6 +1,6 @@
 # create-stellar-next: specification
 
-Status: **draft, awaiting approval** (bootstrap, 2026-11-17, branch `t-000-spec`).
+Status: **approved** 2026-11-17 (bootstrap on branch `t-000-spec`).
 
 This file is the source of truth for the project. It was drafted from three documents written by the human, and it supersedes the first of them:
 
@@ -16,7 +16,7 @@ Tags used below: `[INFERRED]` marks something I concluded and the human has not 
 
 ## §0 Rules for agents
 
-Approved: _pending. The human writes `Approved: YYYY-MM-DD` on this line._
+Approved: 2026-11-17 (given by the human in conversation as "approved. proceed", recorded here by the agent)
 
 ### §0.1 Who approves what
 
@@ -535,7 +535,7 @@ A dependency written `G1` means the human has approved that gate.
 
 | ID    | Title | Deps | Reads | Status | Acceptance criteria |
 |-------|-------|------|-------|--------|---------------------|
-| T-000 | Spec bootstrap | none | `CLAUDE.md`, plan | review | `docs/SPEC.md`, `docs/SOURCES.md` and the two reference documents exist on `t-000-spec`; baseline recorded; the human writes the approval line in §0 |
+| T-000 | Spec bootstrap | none | `CLAUDE.md`, plan | done | `docs/SPEC.md`, `docs/SOURCES.md` and the two reference documents exist on `t-000-spec`; baseline recorded; the human writes the approval line in §0 |
 | T-001 | Toolchain record and pins | T-000 | §0.3, §6 | todo | Versions of Node, Rust, the Stellar CLI and Docker resolved from the tools, not memory; V-16 resolved; pin files committed; §6 and `docs/SOURCES.md` updated |
 | T-002 | Verify the ground-rule facts | T-000 | §0.3, §6.3 | todo | V-01 to V-08, V-12 and V-13 each replaced by value, date and source in §6.3, with a matching line in `docs/SOURCES.md`; any contradiction with this spec is written to §11 and the dependent work stops |
 | T-003 | Resolve the extension wallet package | T-002 | §6.3 V-09, §11 Q-08 | todo | The answer and its source are recorded; or "still unclear" is recorded, the wallet list becomes `wallets-kit` and `passkeys` only, and a DEC says so |
@@ -683,7 +683,7 @@ In this order:
 
 ## §10 Decision log
 
-Append-only. DEC-001 to DEC-004 record how the bootstrap was done. They take effect when the human approves this spec.
+Append-only. DEC-001 to DEC-004 record how the bootstrap was done. They took effect with the approval on 2026-11-17.
 
 ### DEC-001: Run the plan inside the `CLAUDE.md` structure (2026-11-17, T-000)
 Context: the plan defines its own working method (`PROGRESS.md`, `docs/verified-facts.md`, a commit per task, phases with gates). `CLAUDE.md` defines a different one (this spec, `docs/SOURCES.md`, a branch and PR per task, a task board, DECs). The human asked for the plan to be adapted to `CLAUDE.md`.
@@ -714,6 +714,17 @@ Consequences: `docs/reference/` is frozen (§5.9). If the documents change upstr
 ## §11 Open questions
 
 Each has a default. "Blocks" names the first task that cannot finish without an answer. An answer of "use the default" is enough.
+
+### Answered
+
+| ID | Answer (2026-11-17) |
+|---|---|
+| Q-01 | Approved ("approved. proceed") |
+| Q-02 | Default taken with the approval: `docs/SOURCES.md` replaces `docs/verified-facts.md` and ships; `docs/SPEC.md` and `docs/reference/` do not ship |
+| Q-03 | Default taken with the approval: `PROGRESS.md` is dropped |
+| Q-04 | Default taken with the approval: (a) installed CLI output counts as installed source; (b) a fact Raven cannot ground goes to the human |
+
+The human answered Q-01 explicitly. Q-02 to Q-04 were taken as the defaults written in the approved spec because the human said "proceed" without changing them. The human can reverse any of them.
 
 ### Needed before M0 can finish
 
