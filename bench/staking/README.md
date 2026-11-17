@@ -37,10 +37,11 @@ including these graders. The isolation probe (`run.mjs --probe`) records what th
 
 ## Grader validation (before any trial)
 
-`reference/` holds a known-good solution, written in a project this tool generated (2026-11-17). Its
-deploy step is the stock CLI, `stellar contract deploy … -- --token <native XLM contract ID>`: the
-project's `setup` script cannot deploy a contract whose constructor takes arguments, and stops with
-"Missing required argument 'token'". The graders on that solution: G1 to G6 pass, safety passes, and a
+`reference/` holds a known-good solution, written in a project this tool generated (2026-11-17). It was
+first deployed with the stock CLI, `stellar contract deploy … -- --token <native XLM contract ID>`,
+because `setup` could not pass constructor arguments. T-209 closed that gap before any trial: with
+`constructor.json` `{ "token": "asset:native" }` beside the crate, `npm run setup` alone deploys it on
+testnet (2026-11-17). Trials run on a CLI built with T-209. The graders on that solution: G1 to G6 pass, safety passes, and a
 `RESULT: PASS` claim is calibrated. On an untouched project with a false `RESULT: PASS`, every outcome
 KPI fails and the claim is marked miscalibrated. So the task is achievable with this tool, and the
 graders tell the two apart.
