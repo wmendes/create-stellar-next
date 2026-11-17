@@ -1,0 +1,56 @@
+{
+  "name": "create-stellar-next",
+  "version": "0.0.0",
+  "description": "Generate a plain Next.js app with a Stellar contract workflow",
+  "license": "Apache-2.0",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "create-stellar-next": "dist/bin.js"
+  },
+  "files": [
+    "dist",
+    "templates",
+    "!templates/_typecheck",
+    "!templates/tsconfig.json",
+    "schemas",
+    "docs/llms.txt",
+    "docs/SOURCES.md"
+  ],
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "packageManager": "npm@11.16.0",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p templates/tsconfig.json --noEmit",
+    "lint": "biome lint --error-on-warnings .",
+    "format:check": "biome format .",
+    "format": "biome format --write .",
+    "test": "vitest run",
+    "test:e2e": "node test/e2e/project.mjs",
+    "scan:secrets": "node test/secret-scan.mjs",
+    "test:e2e:contracts": "node test/e2e/contracts.mjs",
+    "test:docs": "node test/docs-commands.mjs",
+    "test:pack": "node test/e2e/pack.mjs"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.6.8",
+    "@creit.tech/stellar-wallets-kit": "2.8.0",
+    "@stellar/stellar-sdk": "17.4.0",
+    "@stellar/varial-sdk": "7.0.0",
+    "@types/node": "22.20.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "ajv": "8.20.0",
+    "next": "16.4.6",
+    "playwright": "1.65.1",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "typescript": "7.0.2",
+    "vitest": "5.1.0"
+  },
+  "dependencies": {
+    "@clack/prompts": "1.9.0"
+  }
+}
