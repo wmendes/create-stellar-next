@@ -4,12 +4,19 @@
  */
 import idsJson from "@/packages/contract-ids.json";
 import { Client as HelloWorldClient } from "@/packages/hello_world/dist/index.js";
+import type { contract as sdk } from "@stellar/stellar-sdk";
 import { stellar } from "@/lib/stellar";
+
+/** Needed only for writes: the account that signs, and how to sign. See docs/stellar/contracts.md. */
+export interface Signer {
+  publicKey: string;
+  signTransaction: sdk.SignTransaction;
+}
 
 type ContractIds = Partial<Record<string, Record<string, { id: string; alias: string }>>>;
 const ids = idsJson as ContractIds;
 
-function clientOptions(name: string) {
+function clientOptions(name: string, signer?: Signer) {
   const contractId = ids[stellar.network]?.[name]?.id;
   if (!contractId) {
     throw new Error(
@@ -24,9 +31,10 @@ function clientOptions(name: string) {
     networkPassphrase: stellar.networkPassphrase,
     rpcUrl: stellar.rpcUrl,
     allowHttp: stellar.network === "local",
+    ...signer,
   };
 }
 
-export function helloWorld(): HelloWorldClient {
-  return new HelloWorldClient(clientOptions("hello_world"));
+export function helloWorld(signer?: Signer): HelloWorldClient {
+  return new HelloWorldClient(clientOptions("hello_world", signer));
 }

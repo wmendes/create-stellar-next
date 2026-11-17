@@ -3,7 +3,7 @@ import type { Module } from "../lib/compose.ts";
 /** A local network in Docker through the stock `stellar container` commands (`--local`). */
 export const local: Module = {
   id: "local",
-  templates: [],
+  templates: ["local"],
   scripts: {
     "network:start": {
       command: "stellar container start local",

@@ -527,7 +527,7 @@ Environment facts recorded with the baseline:
 | Project e2e | Built CLI → temp directory → install → `npm run check`, for both style variants; then `--dry-run` and a second `create` must leave the tree unchanged | Every task from T-105. Slow (about 1 minute) | `npm run build && npm run test:e2e` |
 | Contract e2e | `create --yes` → `setup` → `setup` again (git sees no change) → `check` → secret scan → `next start` → Playwright reads "Hello Stellar", against a local network container | Every PR from T-207, Linux only (hosted macOS and Windows runners have no Docker). Slow (several minutes), needs Docker | `npm run build && npm run test:e2e:contracts` |
 | Testnet e2e | The same against testnet | Nightly from T-207 (CI `schedule`) | `npm run build && E2E_NETWORK=testnet npm run test:e2e:contracts` |
-| Docs | Every command named in the generated `AGENTS.md` and the bundled docs exists and runs | Every task from T-501 | Set by T-501 |
+| Docs | Every script named in a generated `AGENTS.md` or bundled guide exists in that project, every guide link resolves, `AGENTS.md` keeps its shape (unit, `npm test`); every Stellar CLI, cargo and npx command they name answers `--help` in the installed tools | Every task from T-501; the tool part needs the Stellar CLI and cargo, so CI runs it in the contract job | `npm test` and `npm run build && npm run test:docs` |
 | Frozen paths | Diff against the default branch touches no path in §5.9 | Every task from T-606 | Set by T-606 |
 | Secret scan | No secret-key pattern (`S` + 55 base32 characters) in any tracked file; the project e2e also scans each generated project | Every task from T-203 | `npm run scan:secrets`; `node test/secret-scan.mjs <dir>` for a directory. Extended to benchmark results by T-601 |
 
@@ -603,7 +603,7 @@ A dependency written `G1` means the human has approved that gate.
 | T-401 | Registry module | G3 | INV-05, V-10 | dropped (DEC-025) | Commands verified first; `registry:publish` and `registry:deploy` wrap `stellar registry`; `contracts:deploy` is unchanged; `doctor` checks for the registry CLI; no registry file when the flag is off |
 | T-402 | Envs module | G3 | §5.6, INV-03, INV-05, INV-10, INV-14 | review | Parses `stellar.envs.toml`; plans the stock commands; prints each, then runs it; `envs:apply --dry-run` matches a stored snapshot; `envs:apply` on a local network deploys the declared contract; never starts Docker itself; no envs file when the flag is off; TOML parser DEC |
 | T-403 | Scaffold Stellar `environments.toml` mapping | T-402 | V-11, Q-09 | review | Tested against Scaffold Stellar's documented examples; what maps and what does not is recorded for `REPORT.md` |
-| T-501 | Generated `AGENTS.md`, bundled docs, `llms.txt`, docs test | G4 | §5.7, INV-15 | todo | The docs test is written first and asserts that every command named in `AGENTS.md` and the bundled docs exists and runs; `AGENTS.md` is under 80 lines with the layout, scripts, pointers and six rules |
+| T-501 | Generated `AGENTS.md`, bundled docs, `llms.txt`, docs test | G4 | §5.7, INV-15 | review | The docs test is written first and asserts that every command named in `AGENTS.md` and the bundled docs exists and runs; `AGENTS.md` is under 80 lines with the layout, scripts, pointers and six rules |
 | T-502 | Outdated-patterns section | T-501 | INV-13, V-01, V-08 | todo | Each outdated pattern sits beside its current replacement; each pair has a source in `docs/SOURCES.md` |
 | T-503 | Generated-client header | T-501 | §3.4 | todo | Files under `packages/` start with a header naming the script that regenerates them; the header survives regeneration |
 | T-504 | Repository `AGENTS.md` | T-501 | §0.4 | todo | Points to `CLAUDE.md` and `docs/SPEC.md`; states no rule of its own |
@@ -959,6 +959,17 @@ Decision: no reader. `scaffold.yml` v2 has constructor arguments with `${account
 Alternatives: a partial reader that ignores the unmapped fields (rejected: silently dropping constructor arguments would deploy contracts that differ from what the file says). A converter command (rejected: not in the plan's scope).
 Consequences: §5.6. Rechecked with the latest plugin, 0.0.34, after the human installed it (Q-23): its new projects use the same `scaffold.yml` v2, and it still accepts `environments.toml` in older projects, so the decision stands.
 
+### DEC-028: The agent layer: AGENTS.md, bundled guides and the docs test (2026-11-17, T-501)
+Context: T-501 finalises the generated `AGENTS.md`, adds bundled docs and `llms.txt`, and needs a test proving that every command they name exists. Q-21: the v0 documentation put the docs in `node_modules/create-stellar-next/docs/`, which a generated project never has.
+Decision:
+- Q-21's default: each module ships its guide as a template file under `docs/stellar/`, so a project carries exactly the guides for its modules, at its versions: `README.md` (index) and `networks.md` (core), `contracts.md`, `contract-client.md`, `wallet.md`, `local-network.md`, `envs.md`. The index is generated from the guides present (`{{DOCS}}` token). Guides refer to each other only in prose, since any one may be absent. Examples use `npm run`, with a note for other package managers.
+- `AGENTS.md` gains a Docs section pointing to `docs/stellar/README.md` and `stellar skill`. Rule 4 is now per module (`generatedCodeRule`): the spec's wording where `contracts:bindings` exists, a variant for the contract-ID client, and a generic one where no code is generated. Before this, rule 4 named a script that projects without contracts do not have. §5.7 still lists six rules.
+- `lib/contracts.ts` (both kinds) accepts an optional signer `{ publicKey, signTransaction }`, passed to the SDK client, so the guides can show a real signed write (`signAndSend()`), checked against the SDK 17.4.0 types.
+- Docs test, two parts. Offline, in `npm test`: for five module combinations, every script named in `AGENTS.md` or a guide exists, every `docs/stellar/…` link resolves, the index lists every guide, `AGENTS.md` stays under 80 lines with six rules, and no doc names the tool. Tools, in `npm run test:docs`: every `stellar`, `cargo` and `npx` command named answers `--help` in the installed tools (13 commands today; an unknown subcommand fails the probe). CI runs the second part in the contract job, which has the toolchain.
+- `llms.txt` (T-501's last item) is written in T-504 with the repository's own `AGENTS.md`, since it indexes the package's docs, not a project's.
+Alternatives: docs only in the package, with a URL in `AGENTS.md` (rejected: the project must not depend on the tool, and agents read local files first). Hosting the docs (rejected: no site in v0).
+Consequences: §5.7 (rule 4 wording per module), §8.2 (Docs gate), Q-21 answered with its default.
+
 ## §11 Open questions
 
 Each has a default. "Blocks" names the first task that cannot finish without an answer. An answer of "use the default" is enough.
@@ -973,6 +984,7 @@ Each has a default. "Blocks" names the first task that cannot finish without an 
 | Q-05 | The human will create the GitHub repository and add it as `origin`. Until then work stays on local branches and T-006 cannot show CI green |
 | Q-06 | Apache-2.0 |
 | Q-22 | Passkeys dropped from v0 by the human (DEC-025) |
+| Q-21 | Default applied in T-501 (DEC-028): the bundled guides are copied into each project as `docs/stellar/`, owned like other generated files |
 | Q-23 | The human installed `stellar-scaffold` 0.0.34 (latest) on 2026-11-17; Arm B uses it |
 | Q-09 | Default applied: the project's own format (DEC-026). Scaffold Stellar's configuration is not read because it does not map cleanly (DEC-027) |
 | Q-08 | Resolved from the docs in T-003, not by the human: `@stellar/varial-sdk`, the renamed `@stellar/freighter-api` (V-09). All three wallet options stay in scope |
@@ -995,7 +1007,6 @@ The human answered Q-01 explicitly. Q-02 to Q-04 were taken as the defaults writ
 |---|---|---|---|
 | Q-07 (answered in T-201) | Does `create` run the package manager install? The plan does not say. The v0 quickstart has no install step and describes `--package-manager` as "used for install", which implies yes | Yes. Skipped under `--dry-run` | T-103 |
 | Q-20 (answered in T-203, DEC-016) | Stellar CLI aliases and identities are global by default (`~/.config/stellar`). A generated `setup` that deploys with `--alias hello_world` would silently replace another project's alias of the same name. The plan fixes "contract IDs are Stellar CLI aliases" but says nothing about scope. Is a per-project scope acceptable, and which form? | Decide in T-203 between a project-local `--config-dir` and project-prefixed alias names, check the chosen form against the CLI, log a DEC, and keep `STELLAR_ACCOUNT` an identity name either way | T-203 |
-| Q-21 | Bundled docs and INV-01 conflict. The v0 documentation says the package ships its docs in `node_modules/create-stellar-next/docs/`, but a generated project has no dependency on the tool, so that path never exists in the project. Should the bundled docs be copied into the project, for example under `docs/stellar/`? | Copy them into the project at create time, owned like any other generated file | T-501 |
 | Q-19 (answered 2026-11-17, DEC-023) | V-07 is contradicted in part. The plan says Stellar Wallets Kit v2 is "on JSR, not npm". Both registries publish 2.8.0, though the vendor's README installs from JSR. Which should the `wallets-kit` module install? | JSR, as the vendor documents: `npx jsr add @creit-tech/stellar-wallets-kit`. The npm copy is noted in the bundled docs | T-303 |
 | Q-10 | BT10 hands the agent a fake secret key. Committing it in a prompt file conflicts with "no secret key in any file" and trips the secret scan | Generate a fresh, unfunded key inside each trial. The committed prompt holds a placeholder. The grader searches for that trial's exact key | T-604 |
 | Q-11 | Benchmark access and cost. Which two agents, how is access supplied, and what budget? Roughly 500 agent trials consume paid usage, and the plan forbids spending money | No trial runs until you name the agents, supply access and state a budget | T-608 |

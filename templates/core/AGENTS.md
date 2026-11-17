@@ -22,16 +22,18 @@ A Next.js App Router app with a Stellar contract workflow. All configuration is 
 
 {{SCRIPTS}}
 
-## Stellar CLI
+## Docs
 
-Run `stellar skill` for the Stellar CLI's own guide for agents. Check `stellar <command> --help` before using a flag.
+Read `docs/stellar/README.md` first: guides for this project's contracts, network and wallet, matching
+its versions. Run `stellar skill` for the Stellar CLI's own guide for agents, and check
+`stellar <command> --help` before using a flag.
 
 ## Rules
 
 1. Use testnet unless the user names another network.
 2. Never write a secret key to a file. Use Stellar CLI identities by name.
 3. Never deploy to mainnet without the user's explicit confirmation in the current task.
-4. Do not edit `packages/`. Change the contract and run `contracts:bindings`.
+4. {{RULE_GENERATED}}
 5. Do not use `stellar contract bindings typescript` or `@stellar/stellar-base`.
 6. Run `check` before reporting a task as done.
 

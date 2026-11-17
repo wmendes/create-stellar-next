@@ -26,7 +26,8 @@
     "test": "vitest run",
     "test:e2e": "node test/e2e/project.mjs",
     "scan:secrets": "node test/secret-scan.mjs",
-    "test:e2e:contracts": "node test/e2e/contracts.mjs"
+    "test:e2e:contracts": "node test/e2e/contracts.mjs",
+    "test:docs": "node test/docs-commands.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.8",

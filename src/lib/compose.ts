@@ -76,6 +76,8 @@ export interface Module {
   layout?: string[];
   /** Scripts the user runs after install and before `dev`, in order. */
   next?: string[];
+  /** Rule 4 of the generated AGENTS.md, for modules that generate code into packages/. */
+  generatedCodeRule?: string;
   /** At most one module of a group is in a project; adding one replaces the other. */
   group?: string;
   /** Whether an existing project uses this module. By default: it has all of the module's scripts. */
@@ -208,9 +210,21 @@ export function compose(modules: readonly Module[], ctx: ComposeContext): Compos
     }
   }
 
+  const docs = raw
+    .filter((f) => /^docs\/stellar\/[^/]+\.md$/.test(f.path) && f.path !== "docs/stellar/README.md")
+    .sort((a, b) => (a.path < b.path ? -1 : 1))
+    .map(
+      (f) =>
+        `- \`${f.path.slice("docs/stellar/".length)}\`: ${/^# (.+)$/m.exec(f.content)?.[1] ?? ""}`,
+    );
+  const rule = [...modules].reverse().find((m) => m.generatedCodeRule)?.generatedCodeRule;
   const tokens = {
     SCRIPTS: renderScripts(scripts),
     LAYOUT: layout.map((line) => `- ${line}`).join("\n"),
+    DOCS: docs.join("\n"),
+    RULE_GENERATED:
+      rule ??
+      "Do not edit generated code. If the project gains a `packages/` folder, regenerate it instead.",
   };
   const files = raw.map((f) => ({
     path: f.path,

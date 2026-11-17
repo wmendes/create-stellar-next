@@ -23,6 +23,7 @@ export const core: Module = {
     "`lib/stellar.ts`: network settings, read from `.env`",
     "`scripts/`: plain Node scripts behind the npm scripts",
     "`.env`: configuration. `.env.example` lists every key. Identity names only, never secret keys",
+    "`docs/stellar/`: guides for this project. Start with `docs/stellar/README.md`",
   ],
   env: [
     {

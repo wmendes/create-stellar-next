@@ -13,6 +13,8 @@ export const contractClient: Module = {
     },
   ],
   next: ["setup"],
+  generatedCodeRule:
+    "Do not edit `packages/`. To change the client, change the contract ID or network in `.env` and run `contracts:bindings`.",
   detect: (project) => "NEXT_PUBLIC_STELLAR_CONTRACT_ID" in project.env,
   scripts: {
     setup: {

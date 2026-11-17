@@ -22,6 +22,7 @@ export const contracts: Module = {
   templates: ["contracts"],
   requires: ["stellar", "cargo"],
   next: ["setup"],
+  generatedCodeRule: "Do not edit `packages/`. Change the contract and run `contracts:bindings`.",
   dependencies: { "@stellar/stellar-sdk": "17.4.0" },
   env: [
     {
