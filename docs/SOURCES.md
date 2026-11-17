@@ -48,6 +48,7 @@ Every external fact that was checked, and every piece of code or document that w
 | 2026-11-17 | Dev tool versions and licences resolved from the registry | TypeScript 7.0.2 (Apache-2.0), Vitest 5.1.0 (MIT), Biome 2.6.8 (MIT OR Apache-2.0), `@types/node` 22.20.5 | as stated | Package manager: `npm view <pkg> version license` |
 | 2026-11-17 | TypeScript 7.0.2 supports `--rewriteRelativeImportExtensions`, `--allowImportingTsExtensions`, `--erasableSyntaxOnly`, `--verbatimModuleSyntax` and `module: nodenext` | as stated | 7.0.2 | Installed: `npx tsc --help --all` |
 | 2026-11-17 | Biome config schema | `https://biomejs.dev/schemas/2.6.8/schema.json`, written by `biome init` | 2.6.8 | Installed: `npx biome init` |
+| 2026-11-17 | Latest releases of the CI actions | `actions/checkout` v7.0.1 = `3d3c42e5aac5ba805825da76410c181273ba90b1`; `actions/setup-node` v7.1.0 = `949feb2413d6458794dcd2491c4babbbce0c15c1`; both run on `node24`; setup-node accepts `node-version-file` and `cache` | as stated | GitHub API: `gh api repos/<repo>/releases/latest`, `gh api repos/<repo>/commits/<tag>`, and each tag's `action.yml` |
 
 ## Copied code
 
