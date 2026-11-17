@@ -3,12 +3,15 @@
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { delimiter, join } from "node:path";
+import { requireGeneratedClients } from "./clients.mjs";
 
 // Find the project's own binaries (for the watcher's stellar and npx calls) without `npm run`.
 const env = {
   ...process.env,
   PATH: `${join("node_modules", ".bin")}${delimiter}${process.env.PATH}`,
 };
+
+requireGeneratedClients();
 
 // Run Next.js's own entry point with Node: no shell, so it behaves the same on every OS.
 const nextBin = join("node_modules", "next", "dist", "bin", "next");

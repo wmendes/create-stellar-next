@@ -1,8 +1,9 @@
 // Runs every check this project has. Passing it is the definition of done.
 // Plain Node: read it, change it, or run each command yourself.
 import { spawnSync } from "node:child_process";
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { delimiter, join } from "node:path";
+import { requireGeneratedClients } from "./clients.mjs";
 
 // Find the project's own binaries even when this script is run without `npm run`.
 const env = {
@@ -10,20 +11,7 @@ const env = {
   PATH: `${join("node_modules", ".bin")}${delimiter}${process.env.PATH}`,
 };
 
-// Projects with lib/contracts.ts need their generated clients before they can typecheck.
-const packages = existsSync("packages")
-  ? readdirSync("packages", { withFileTypes: true }).filter((e) => e.isDirectory())
-  : [];
-const clientsMissing =
-  packages.length === 0 ||
-  packages.some((e) => !existsSync(`packages/${e.name}/dist/index.js`)) ||
-  (existsSync("contracts/Cargo.toml") && !existsSync("packages/contract-ids.json"));
-if (existsSync("lib/contracts.ts") && clientsMissing) {
-  console.error(
-    "✗ The generated contract clients in packages/ are missing. Run the setup script first (npm run setup).",
-  );
-  process.exit(1);
-}
+requireGeneratedClients();
 
 const steps = [
   { name: "Typecheck", command: "next typegen && tsc --noEmit" },

@@ -118,6 +118,17 @@ describe("dev", () => {
     expect(dev.output()).not.toContain("Watching contracts/");
   });
 
+  it("stops before starting Next.js, and names setup, when the generated clients are missing", async () => {
+    const { rm } = await import("node:fs/promises");
+    await rm(join(h.root, "packages"), { recursive: true });
+    const dev = h.start("dev.mjs");
+    children.push(dev);
+    const code = await new Promise((resolve) => dev.on("exit", resolve));
+    expect(code).not.toBe(0);
+    expect(dev.output()).toContain("npm run setup");
+    expect(h.calls().some((c) => c.startsWith("next dev"))).toBe(false);
+  });
+
   it("starts only next dev when the project has no contracts", async () => {
     const { rm } = await import("node:fs/promises");
     await rm(join(h.root, "contracts"), { recursive: true });
