@@ -2,7 +2,7 @@
 // Usage: npm run build && npm run test:e2e
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -65,7 +65,7 @@ try {
     const deps = { ...pkg.dependencies, ...pkg.devDependencies };
     assert(!(TOOL_NAME in deps), "INV-01: the generated project depends on the tool");
 
-    run("npm", ["install", "--no-audit", "--no-fund"], root);
+    assert(existsSync(join(root, "node_modules", "next")), "create did not install dependencies");
     run("npm", ["run", "check"], root);
 
     const before = treeHash(root);

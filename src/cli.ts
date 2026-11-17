@@ -8,6 +8,7 @@ import {
   PACKAGE_MANAGERS,
   type PackageManager,
 } from "./lib/package-manager.ts";
+import { createRunner, type Runner, type RunnerOptions } from "./lib/runner.ts";
 import type { WriteAction } from "./lib/writer.ts";
 import { base } from "./modules/base.ts";
 import { TOOL_NAME } from "./name.ts";
@@ -36,7 +37,14 @@ export interface CliEnv {
   prompt?: PromptFn;
   /** The running Node version, without the leading "v". */
   nodeVersion?: string;
+  /** Builds the command runner. Tests pass a fake; the default runs real commands. */
+  createRunner?: (options: RunnerOptions) => Runner;
+  /** Live progress for humans: each command line and its output. Never used with --json. */
+  echo?: (text: string) => void;
 }
+
+/** Version of schemas/output.schema.json that --json output follows. */
+export const OUTPUT_SCHEMA_VERSION = 2;
 
 /** Exit codes fixed by SPEC §5.2. */
 export const ExitCode = {
@@ -48,6 +56,7 @@ export const ExitCode = {
 
 /** The error codes in schemas/output.schema.json. */
 type ErrorCode =
+  | "COMMAND_FAILED"
   | "INVALID_ARGUMENT"
   | "NOT_BUILT"
   | "EDITED_FILES"
@@ -132,7 +141,7 @@ function render(outcome: Outcome, json: boolean): CliResult {
     const { files, next, errors } = outcome;
     return {
       exitCode: outcome.exitCode,
-      stdout: `${JSON.stringify({ files, next, errors })}\n`,
+      stdout: `${JSON.stringify({ schemaVersion: OUTPUT_SCHEMA_VERSION, files, next, errors })}\n`,
       stderr: "",
     };
   }
@@ -268,6 +277,12 @@ async function runCreate(
     (values["package-manager"] as PackageManager | undefined) ??
     detectPackageManager(env.userAgent);
   const dryRun = values["dry-run"] ?? false;
+  const echo = json ? undefined : env.echo;
+  const runner = (env.createRunner ?? createRunner)({
+    dryRun,
+    log: echo && ((line) => echo(`${line}\n`)),
+    echo,
+  });
   const result = await create({
     dir,
     cwd,
@@ -276,19 +291,16 @@ async function runCreate(
     packageManager,
     force: values.force ?? false,
     dryRun,
+    runner,
   });
   if (!result.ok) {
+    const error = result.error ?? { code: "INTERNAL", message: "Create failed.", fix: HELP };
     return {
-      exitCode: ExitCode.Failure,
+      exitCode:
+        error.code === "MISSING_PREREQUISITE" ? ExitCode.MissingPrerequisite : ExitCode.Failure,
       files: result.files,
-      next: [],
-      errors: [
-        {
-          code: "EDITED_FILES",
-          message: result.error?.message ?? "Create failed.",
-          fix: result.error?.fix ?? HELP,
-        },
-      ],
+      next: result.next,
+      errors: [error],
       dryRun,
     };
   }

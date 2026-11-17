@@ -6,18 +6,21 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { main } from "../../src/cli.ts";
 import { MANIFEST_FILE, readManifest } from "../../src/lib/manifest.ts";
 import { TOOL_NAME } from "../../src/name.ts";
+import { type FakeRunner, fakeRunner } from "./fake-runner.ts";
 
 let cwd: string;
+let fake: FakeRunner;
 
 beforeEach(async () => {
   cwd = await mkdtemp(join(tmpdir(), "csn-create-"));
+  fake = fakeRunner();
 });
 
 afterEach(async () => {
   await rm(cwd, { recursive: true, force: true });
 });
 
-const run = (...argv: string[]) => main(argv, { cwd });
+const run = (...argv: string[]) => main(argv, { cwd, createRunner: fake.factory });
 
 describe("create my-app --contracts none --wallet none", () => {
   it("writes the base project, records every file in the manifest, and exits 0", async () => {
@@ -34,11 +37,36 @@ describe("create my-app --contracts none --wallet none", () => {
     expect(JSON.stringify(pkg)).not.toContain(TOOL_NAME);
   });
 
-  it("prints the next commands to run", async () => {
+  it("installs dependencies in the project, then prints the next commands", async () => {
     const result = await run("my-app", "--contracts", "none");
+    expect(fake.calls.map((c) => [c.command, ...c.args].join(" "))).toEqual(["npm install"]);
+    expect(fake.calls[0]?.cwd).toBe(join(cwd, "my-app"));
     expect(result.stdout).toContain("cd my-app");
-    expect(result.stdout).toContain("npm install");
     expect(result.stdout).toContain("npm run dev");
+    expect(result.stdout).not.toContain("npm install");
+  });
+
+  it("does not install on --dry-run", async () => {
+    await run("my-app", "--contracts", "none", "--dry-run");
+    expect(fake.dryRuns).toEqual([true]);
+    expect(existsSync(join(cwd, "my-app"))).toBe(false);
+  });
+
+  it("exits 1 when the install fails, keeps the files and names the command to retry", async () => {
+    fake = fakeRunner({ fail: () => true });
+    const result = await run("my-app", "--contracts", "none");
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("Run `npm install` in my-app");
+    expect(existsSync(join(cwd, "my-app/package.json"))).toBe(true);
+  });
+
+  it("exits 3 before writing anything when the package manager is missing", async () => {
+    fake = fakeRunner({ missing: ["pnpm"] });
+    const result = await run("my-app", "--contracts", "none", "--package-manager", "pnpm");
+    expect(result.exitCode).toBe(3);
+    expect(result.stderr).toContain("pnpm");
+    expect(existsSync(join(cwd, "my-app"))).toBe(false);
+    expect(fake.calls).toEqual([]);
   });
 
   it("defaults to testnet and Tailwind", async () => {
@@ -59,7 +87,7 @@ describe("create my-app --contracts none --wallet none", () => {
 
   it("uses the package manager named by --package-manager in the next steps", async () => {
     const result = await run("my-app", "--contracts", "none", "--package-manager", "pnpm");
-    expect(result.stdout).toContain("pnpm install");
+    expect(fake.calls[0]?.command).toBe("pnpm");
     expect(result.stdout).toContain("pnpm dev");
   });
 

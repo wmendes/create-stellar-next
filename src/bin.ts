@@ -16,6 +16,7 @@ const result = await main(process.argv.slice(2), {
   userAgent: process.env.npm_config_user_agent,
   isTTY: Boolean(process.stdin.isTTY && process.stdout.isTTY),
   prompt,
+  echo: (text) => process.stdout.write(text),
 });
 process.stdout.write(result.stdout);
 process.stderr.write(result.stderr);

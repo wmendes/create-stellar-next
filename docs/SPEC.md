@@ -321,7 +321,7 @@ Behaviour rules:
 
 ### §5.3 `--json` output
 
-One object with exactly `files`, `next` and `errors`, on one line of stdout, with nothing on stderr. Schema: `schemas/output.schema.json` (JSON Schema draft-07, shipped in the package). `files` lists every planned file with `create`, `update`, `unchanged` or `conflict`. `errors` is empty exactly when the exit code is 0; each error has a `code` (`INVALID_ARGUMENT`, `NOT_BUILT`, `EDITED_FILES`, `MISSING_PREREQUISITE`, `CANCELLED`, `INTERNAL`), a `message` and a `fix`. Argument errors are reported in this form too whenever `--json` appears in the arguments. `doctor --json` gets its own schema in T-301.
+One object with exactly `schemaVersion`, `files`, `next` and `errors`, on one line of stdout, with nothing on stderr. Schema: `schemas/output.schema.json` (JSON Schema draft-07, shipped in the package), version 2 since T-201 (DEC-013). `files` lists every planned file with `create`, `update`, `unchanged` or `conflict`. `errors` is empty exactly when the exit code is 0; each error has a `code` (`INVALID_ARGUMENT`, `NOT_BUILT`, `EDITED_FILES`, `MISSING_PREREQUISITE`, `COMMAND_FAILED`, `CANCELLED`, `INTERNAL`), a `message` and a `fix`. Argument errors are reported in this form too whenever `--json` appears in the arguments. `doctor --json` gets its own schema in T-301.
 
 ### §5.4 Edit-detection manifest
 
@@ -575,7 +575,7 @@ A dependency written `G1` means the human has approved that gate.
 | T-103 | `create` for `--contracts none --wallet none` | T-102 | §5.1, INV-01, INV-02, INV-05, Q-07 | done | Generates a project in a temp directory; nothing in it depends on the tool; `.env.example` targets testnet; no wallet, local, registry or envs file exists |
 | T-104 | Non-interactive surface | T-103 | §5.1–§5.3, INV-06 to INV-09, INV-12 | done | `--yes`, `--json`, `--dry-run`, `--force`; no TTY behaves as `--yes`; exit codes 0, 1, 2, 3 each have a negative-case test; JSON validates against the committed schema; argument parser and prompt library DEC |
 | T-105 | Generated-project e2e in CI | T-104, T-006 | §8 | blocked: Q-05, passes locally on macOS, CI job written, not yet run | On three systems: built CLI → temp directory → install → `npm run check` passes; `--dry-run` leaves the directory untouched |
-| T-201 | Command runner | G1 | B-1, INV-09, INV-12, INV-14 | todo | One function; logs the exact command; `create` runs the package-manager install through it (Q-07, DEC-011); `--dry-run` prints and does not execute; a failure becomes an error naming the cause and the fix; a missing binary exits `3` |
+| T-201 | Command runner | G1 | B-1, INV-09, INV-12, INV-14 | review | One function; logs the exact command; `create` runs the package-manager install through it (Q-07, DEC-011); `--dry-run` prints and does not execute; a failure becomes an error naming the cause and the fix; a missing binary exits `3` |
 | T-202 | Contracts module | T-201 | §3.4, V-06 | todo | Calls `stellar contract init`; adds the `contracts:*` scripts; writes `lib/contracts.ts`; the root `AGENTS.md` links to the one in `contracts/` |
 | T-203 | `setup` script | T-202 | INV-03, INV-04, INV-10, V-01 to V-04, V-12 | todo | Identity, build, deploy with alias, generate client; a second run leaves the tree hash unchanged; identities by name only; secret-scan gate added |
 | T-204 | Example page | T-203 | §3.4 | todo | The home page shows the hello-world contract's response with no wallet |
@@ -801,6 +801,18 @@ Decision:
 Alternatives: `@inquirer/prompts` 8.8.0 (MIT, maintained; not chosen: a larger dependency tree for the same `text` prompt). `prompts` 2.4.2 and `enquirer` 2.4.1 (rejected: no release since 2023). `commander` or `yargs` for arguments (rejected: `parseArgs` already does the job with no dependency). Ajv 8.20.0 is a dev dependency only, used to validate output against the schema in tests.
 Consequences: §5.3 fixes the schema path. INV-06 to INV-09 and INV-12 now have tests, including spawning the entry point with stdin closed.
 
+### DEC-013: Output schema version 2 adds COMMAND_FAILED (2026-11-17, T-201)
+Context: §5.3 froze at G1. The command runner needs an error code for "an external command ran and failed", and no frozen code fits. Changing a frozen interface needs the human: asked on 2026-11-17, the human chose "Add COMMAND_FAILED".
+Decision: `schemas/output.schema.json` becomes version 2. The output gains a required `schemaVersion` field (const 2) and the error code `COMMAND_FAILED`. The schema's `$id` gains `#v2`. Every other field and code keeps its meaning.
+Alternatives: reuse `INTERNAL` (rejected by the human: agents could not tell a tool bug from a failed command). Unfreeze §5.3 until G3 (not chosen).
+Consequences: §5.3. Golden tests updated: every JSON test asserts `schemaVersion` 2 and validates against the schema. Any later change bumps the version again.
+
+### DEC-014: Command runner (2026-11-17, T-201)
+Context: B-1 requires one function for every external command, with exact logging, `--dry-run`, and errors naming the cause and fix.
+Decision: `createRunner()` in `src/lib/runner.ts`. It resolves the binary on PATH itself (with PATHEXT on Windows), so a missing binary becomes `MISSING_PREREQUISITE` (exit 3) with an install hint, instead of a shell's "not found". `.cmd` and `.bat` shims run through a shell with quoted arguments, because Node refuses to spawn them otherwise (CVE-2024-27980). Each command is logged as `$ <command>` (or `(dry run) $ …`) before it runs, and output streams to the caller. Anything shaped like a Stellar secret key (`S` plus 55 base32 characters) is redacted from log lines, output and error messages. A non-zero exit becomes `COMMAND_FAILED` with the last 20 lines of output and the caller's fix. `available()` lets a command check prerequisites before writing anything. `create` checks the package manager first (exit 3, nothing written), writes, then runs `<pm> install` through the runner; a failed install exits 1 with the retry steps. A unit test now enforces B-1 (only `src/lib/runner.ts` imports `node:child_process`) and B-7.
+Alternatives: `execa` or `cross-spawn` (rejected: one function covers the need, and both would add a dependency to every install of the tool). `shell: true` everywhere (rejected: a missing binary would look like a failed command, and quoting differs by shell).
+Consequences: Q-07 is implemented. B-1 and B-7 are enforced by test. In human mode, install progress streams to stdout; with `--json` it is captured and only its tail appears in an error.
+
 ## §11 Open questions
 
 Each has a default. "Blocks" names the first task that cannot finish without an answer. An answer of "use the default" is enough.
@@ -832,7 +844,7 @@ The human answered Q-01 explicitly. Q-02 to Q-04 were taken as the defaults writ
 
 | ID | Question | Default | Blocks |
 |---|---|---|---|
-| Q-07 | Does `create` run the package manager install? The plan does not say. The v0 quickstart has no install step and describes `--package-manager` as "used for install", which implies yes | Yes. Skipped under `--dry-run` | T-103 |
+| Q-07 (answered in T-201) | Does `create` run the package manager install? The plan does not say. The v0 quickstart has no install step and describes `--package-manager` as "used for install", which implies yes | Yes. Skipped under `--dry-run` | T-103 |
 | Q-20 | Stellar CLI aliases and identities are global by default (`~/.config/stellar`). A generated `setup` that deploys with `--alias hello_world` would silently replace another project's alias of the same name. The plan fixes "contract IDs are Stellar CLI aliases" but says nothing about scope. Is a per-project scope acceptable, and which form? | Decide in T-203 between a project-local `--config-dir` and project-prefixed alias names, check the chosen form against the CLI, log a DEC, and keep `STELLAR_ACCOUNT` an identity name either way | T-203 |
 | Q-21 | Bundled docs and INV-01 conflict. The v0 documentation says the package ships its docs in `node_modules/create-stellar-next/docs/`, but a generated project has no dependency on the tool, so that path never exists in the project. Should the bundled docs be copied into the project, for example under `docs/stellar/`? | Copy them into the project at create time, owned like any other generated file | T-501 |
 | Q-19 | V-07 is contradicted in part. The plan says Stellar Wallets Kit v2 is "on JSR, not npm". Both registries publish 2.8.0, though the vendor's README installs from JSR. Which should the `wallets-kit` module install? | JSR, as the vendor documents: `npx jsr add @creit-tech/stellar-wallets-kit`. The npm copy is noted in the bundled docs | T-303 |

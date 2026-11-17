@@ -1,12 +1,16 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://github.com/create-stellar-next/schemas/output.schema.json",
+  "$id": "https://github.com/create-stellar-next/schemas/output.schema.json#v2",
   "title": "create-stellar-next --json output",
-  "description": "The one JSON object a command prints on stdout with --json (SPEC §5.3). errors is empty exactly when the exit code is 0.",
+  "description": "The one JSON object a command prints on stdout with --json (SPEC §5.3). Version 2 adds schemaVersion and the COMMAND_FAILED error code. errors is empty exactly when the exit code is 0.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["files", "next", "errors"],
+  "required": ["schemaVersion", "files", "next", "errors"],
   "properties": {
+    "schemaVersion": {
+      "description": "Version of this schema. Bumped on any change to the output's shape or codes.",
+      "const": 2
+    },
     "files": {
       "description": "Every file the command planned, in path order, with what it did or, on a dry run, would do.",
       "type": "array",
@@ -15,15 +19,23 @@
         "additionalProperties": false,
         "required": ["path", "action"],
         "properties": {
-          "path": { "type": "string", "minLength": 1 },
-          "action": { "enum": ["create", "update", "unchanged", "conflict"] }
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "action": {
+            "enum": ["create", "update", "unchanged", "conflict"]
+          }
         }
       }
     },
     "next": {
       "description": "Commands to run next, in order.",
       "type": "array",
-      "items": { "type": "string", "minLength": 1 }
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
     },
     "errors": {
       "type": "array",
@@ -38,12 +50,19 @@
               "NOT_BUILT",
               "EDITED_FILES",
               "MISSING_PREREQUISITE",
+              "COMMAND_FAILED",
               "CANCELLED",
               "INTERNAL"
             ]
           },
-          "message": { "type": "string", "minLength": 1 },
-          "fix": { "type": "string", "minLength": 1 }
+          "message": {
+            "type": "string",
+            "minLength": 1
+          },
+          "fix": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       }
     }

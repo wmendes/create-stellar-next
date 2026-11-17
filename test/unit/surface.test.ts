@@ -8,6 +8,7 @@ import { Ajv } from "ajv";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { type CliEnv, main, type PromptFn } from "../../src/cli.ts";
 import { TOOL_NAME } from "../../src/name.ts";
+import { fakeRunner } from "./fake-runner.ts";
 
 const schema = JSON.parse(
   readFileSync(new URL("../../schemas/output.schema.json", import.meta.url), "utf8"),
@@ -26,9 +27,17 @@ const neverPrompt: PromptFn = () => {
   throw new Error("prompted when it must not");
 };
 const run = (argv: string[], env: Partial<CliEnv> = {}) =>
-  main(argv, { cwd, isTTY: false, prompt: neverPrompt, nodeVersion: "24.18.1", ...env });
+  main(argv, {
+    cwd,
+    isTTY: false,
+    prompt: neverPrompt,
+    nodeVersion: "24.18.1",
+    createRunner: fakeRunner().factory,
+    ...env,
+  });
 
 interface Output {
+  schemaVersion: number;
   files: { path: string; action: string }[];
   next: string[];
   errors: { code: string; message: string; fix: string }[];
@@ -49,6 +58,17 @@ describe("--json", () => {
     const out = json(r.stdout);
     expect(out.errors).toEqual([]);
     expect(out.files.find((f) => f.path === "app/page.tsx")?.action).toBe("create");
+    expect(out.schemaVersion).toBe(2);
+    expect(out.next).toEqual(["cd my-app", "npm run dev"]);
+  });
+
+  it("reports a failed install as COMMAND_FAILED with exit 1 and the retry steps", async () => {
+    const r = await run(["my-app", "--contracts", "none", "--json"], {
+      createRunner: fakeRunner({ fail: () => true }).factory,
+    });
+    expect(r.exitCode).toBe(1);
+    const out = json(r.stdout);
+    expect(out.errors[0]?.code).toBe("COMMAND_FAILED");
     expect(out.next).toEqual(["cd my-app", "npm install", "npm run dev"]);
   });
 
