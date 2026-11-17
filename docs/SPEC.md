@@ -358,7 +358,7 @@ source = "contracts/contracts/hello-world"   # a crate in the workspace: deploye
 # id = "C…"                                   # or: an already deployed contract, never deployed
 ```
 
-Whether Scaffold Stellar's `environments.toml` can also be read is T-403. The format freezes at G4.
+Scaffold Stellar's configuration is not read (T-403, DEC-027): its current `scaffold.yml` v2 does not map cleanly; `docs/scaffold-mapping.md` has the field-by-field mapping. The format freezes at G4.
 
 ### §5.7 Generated `AGENTS.md`
 
@@ -461,7 +461,7 @@ The plan lists V-01 to V-08 as "confirmed on 2026-11-12, to recheck". None has b
 | V-08 | Confirmed, with a precise floor: `@stellar/stellar-sdk` 17.4.0 declares `engines.node >=22.12.0` and `"type": "module"`, and also ships a CommonJS build. `@stellar/stellar-base` 15.0.0 is deprecated on npm: "rolled into @stellar/stellar-sdk", which exposes it as the `@stellar/stellar-sdk/base` subpath (2026-11-17, `npm view`). The docs say SDK v17 is current (Raven) | done |
 | V-09 | Resolved: the `extension` option uses `@stellar/varial-sdk` (7.0.0). Varial is the new name of Freighter, SDF's browser extension wallet, and "`@stellar/varial-sdk` is the new name of `@stellar/freighter-api`. Dapps already using `@stellar/freighter-api` keep working, but new methods ship only in `@stellar/varial-sdk`" (2026-11-17, Raven `stellarDocs.get_doc_page` /docs/build/guides/freighter/prompt-to-sign-tx; `npm view`). The plan's two sources did not disagree: they name the same wallet before and after a rename | done |
 | V-10 | Not needed: the registry was dropped from v0 (DEC-025) | dropped |
-| V-11 | `[VERIFY: Scaffold Stellar's official quickstart, its prerequisites, and the environments.toml format]` | T-403, T-602 |
+| V-11 | Partly checked. Scaffold Stellar's current template (fetched by `stellar scaffold init`, 2026-11-17) uses `scaffold.yml` v2, not `environments.toml`; its fields are in `docs/scaffold-mapping.md`. The older `environments.toml` format could not be grounded in Raven (unverified). Its official quickstart for Arm B is still to check in T-602, with the plugin version in Q-23 | partly: Q-23 |
 | V-12 | Confirmed: `stellar contract alias show [OPTIONS] <ALIAS>` shows the contract ID for an alias (2026-11-17, Raven `stellarDocs` search, asOf 2026-11-17 CLI manual) | done |
 | V-13 | Confirmed: testnet RPC `https://soroban-testnet.stellar.org` (Raven, getNetwork and SDK helper pages), passphrase `Test SDF Network ; September 2015` (installed `stellar network ls --long`, 30.0.1, and Raven keys cookbook) | done |
 | V-14 | Confirmed early: the CLI's built-in `local` network is RPC `http://localhost:8000/rpc`, passphrase `Standalone Network ; February 2017` (2026-11-17, installed `stellar network ls --long`, 30.0.1) | done |
@@ -602,7 +602,7 @@ A dependency written `G1` means the human has approved that gate.
 | T-306 | Drop passkeys and the registry from v0 | T-304 | §1, §5.1, DEC-025 | review | `--wallet passkeys`, `--registry` and `add registry` are argument errors (exit 2); the spec no longer promises either |
 | T-401 | Registry module | G3 | INV-05, V-10 | dropped (DEC-025) | Commands verified first; `registry:publish` and `registry:deploy` wrap `stellar registry`; `contracts:deploy` is unchanged; `doctor` checks for the registry CLI; no registry file when the flag is off |
 | T-402 | Envs module | G3 | §5.6, INV-03, INV-05, INV-10, INV-14 | review | Parses `stellar.envs.toml`; plans the stock commands; prints each, then runs it; `envs:apply --dry-run` matches a stored snapshot; `envs:apply` on a local network deploys the declared contract; never starts Docker itself; no envs file when the flag is off; TOML parser DEC |
-| T-403 | Scaffold Stellar `environments.toml` mapping | T-402 | V-11, Q-09 | todo | Tested against Scaffold Stellar's documented examples; what maps and what does not is recorded for `REPORT.md` |
+| T-403 | Scaffold Stellar `environments.toml` mapping | T-402 | V-11, Q-09 | review | Tested against Scaffold Stellar's documented examples; what maps and what does not is recorded for `REPORT.md` |
 | T-501 | Generated `AGENTS.md`, bundled docs, `llms.txt`, docs test | G4 | §5.7, INV-15 | todo | The docs test is written first and asserts that every command named in `AGENTS.md` and the bundled docs exists and runs; `AGENTS.md` is under 80 lines with the layout, scripts, pointers and six rules |
 | T-502 | Outdated-patterns section | T-501 | INV-13, V-01, V-08 | todo | Each outdated pattern sits beside its current replacement; each pair has a source in `docs/SOURCES.md` |
 | T-503 | Generated-client header | T-501 | §3.4 | todo | Files under `packages/` start with a header naming the script that regenerates them; the header survives regeneration |
@@ -953,6 +953,12 @@ Decision:
 Alternatives: Scaffold Stellar's `environments.toml` as the native format (deferred to T-403's mapping). `@iarna/toml` (rejected: unmaintained since 2020). A hand-written TOML subset parser (rejected: `smol-toml` is maintained and already installed).
 Consequences: §5.6 (freezes at G4). Verified for real: `create --envs`, then `envs:apply -- local` against the local network container deployed `hello_world` and pointed `.env` at local; a second apply skipped the deploy and left `git status` empty; `check` passed.
 
+### DEC-027: Scaffold Stellar's configuration is not read (2026-11-17, T-403)
+Context: Q-09's default was to accept Scaffold Stellar's `environments.toml` too, if it maps cleanly. The template `stellar scaffold init` downloads today has no `environments.toml`: it uses `scaffold.yml` v2, in YAML.
+Decision: no reader. `scaffold.yml` v2 has constructor arguments with `${account.…}` interpolation, `after-deploy` calls, network `extends` and `allow-deploy`, RPC headers and custom directories, none of which v0 has; reading it would also need a YAML parser in every project. `docs/scaffold-mapping.md` records what maps (accounts, RPC URL, workspace and already deployed contracts) and what does not, for `REPORT.md` and for a hand migration.
+Alternatives: a partial reader that ignores the unmapped fields (rejected: silently dropping constructor arguments would deploy contracts that differ from what the file says). A converter command (rejected: not in the plan's scope).
+Consequences: §5.6. V-11 is partly checked. The older `environments.toml` format is unverified. Q-23 raised for the Scaffold version Arm B uses.
+
 ## §11 Open questions
 
 Each has a default. "Blocks" names the first task that cannot finish without an answer. An answer of "use the default" is enough.
@@ -967,6 +973,7 @@ Each has a default. "Blocks" names the first task that cannot finish without an 
 | Q-05 | The human will create the GitHub repository and add it as `origin`. Until then work stays on local branches and T-006 cannot show CI green |
 | Q-06 | Apache-2.0 |
 | Q-22 | Passkeys dropped from v0 by the human (DEC-025) |
+| Q-09 | Default applied: the project's own format (DEC-026). Scaffold Stellar's configuration is not read because it does not map cleanly (DEC-027) |
 | Q-08 | Resolved from the docs in T-003, not by the human: `@stellar/varial-sdk`, the renamed `@stellar/freighter-api` (V-09). All three wallet options stay in scope |
 | Q-04 | Default taken with the approval: (a) installed CLI output counts as installed source; (b) a fact Raven cannot ground goes to the human |
 
@@ -987,9 +994,9 @@ The human answered Q-01 explicitly. Q-02 to Q-04 were taken as the defaults writ
 |---|---|---|---|
 | Q-07 (answered in T-201) | Does `create` run the package manager install? The plan does not say. The v0 quickstart has no install step and describes `--package-manager` as "used for install", which implies yes | Yes. Skipped under `--dry-run` | T-103 |
 | Q-20 (answered in T-203, DEC-016) | Stellar CLI aliases and identities are global by default (`~/.config/stellar`). A generated `setup` that deploys with `--alias hello_world` would silently replace another project's alias of the same name. The plan fixes "contract IDs are Stellar CLI aliases" but says nothing about scope. Is a per-project scope acceptable, and which form? | Decide in T-203 between a project-local `--config-dir` and project-prefixed alias names, check the chosen form against the CLI, log a DEC, and keep `STELLAR_ACCOUNT` an identity name either way | T-203 |
+| Q-23 | Scaffold Stellar version for benchmark Arm B. This machine has `stellar-scaffold` 0.0.25 (built against Stellar CLI 27.0.0); crates.io's latest is 0.0.34. Arm B must follow Scaffold's own quickstart at its current version. Installing 0.0.34, even into the scratchpad with `cargo install --root`, was blocked by the permission system. Will you install it, or allow the install? | The benchmark image (T-601) installs the latest release at build time and pins that version; until then the 0.0.25 observations are labelled as such | T-602 |
 | Q-21 | Bundled docs and INV-01 conflict. The v0 documentation says the package ships its docs in `node_modules/create-stellar-next/docs/`, but a generated project has no dependency on the tool, so that path never exists in the project. Should the bundled docs be copied into the project, for example under `docs/stellar/`? | Copy them into the project at create time, owned like any other generated file | T-501 |
 | Q-19 (answered 2026-11-17, DEC-023) | V-07 is contradicted in part. The plan says Stellar Wallets Kit v2 is "on JSR, not npm". Both registries publish 2.8.0, though the vendor's README installs from JSR. Which should the `wallets-kit` module install? | JSR, as the vendor documents: `npx jsr add @creit-tech/stellar-wallets-kit`. The npm copy is noted in the bundled docs | T-303 |
-| Q-09 | `stellar.envs.toml` format | Own minimal format. Also accept Scaffold Stellar's `environments.toml` if it maps cleanly | T-402 |
 | Q-10 | BT10 hands the agent a fake secret key. Committing it in a prompt file conflicts with "no secret key in any file" and trips the secret scan | Generate a fresh, unfunded key inside each trial. The committed prompt holds a placeholder. The grader searches for that trial's exact key | T-604 |
 | Q-11 | Benchmark access and cost. Which two agents, how is access supplied, and what budget? Roughly 500 agent trials consume paid usage, and the plan forbids spending money | No trial runs until you name the agents, supply access and state a budget | T-608 |
 | Q-12 | Do you confirm the four thresholds in §9.3.6? | Reported as "proposed" | T-609 |
