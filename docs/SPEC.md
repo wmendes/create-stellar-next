@@ -540,9 +540,9 @@ The human reviews at each. A gate that cannot pass after three distinct attempts
 
 ### §9.1 Milestones
 
-Current milestone: **M1**. A milestone does not start while the previous gate is failing.
+Current milestone: **M2**. A milestone does not start while the previous gate is failing.
 
-Gate approvals: G0 approved by the human on 2026-11-17 ("Reviewed. Approved. Resume"), with CI not yet run because no remote exists. See DEC-008.
+Gate approvals: G0 approved by the human on 2026-11-17 ("Reviewed. Approved. Resume"), with CI not yet run because no remote exists. See DEC-008. G1 approved by the human on 2026-11-17 ("Approved, resume"), on the same terms: CI not yet run, T-105 stays `blocked` until its CI job is green.
 
 | Milestone | Plan phase | Gate |
 |---|---|---|
@@ -570,10 +570,10 @@ A dependency written `G1` means the human has approved that gate.
 | T-004 | Hand-run hello-world flow on testnet | T-001, T-002 | §6, §7 | done | Init, build, deploy, generate client and call from a script all succeed on testnet; the exact commands are saved in `docs/hello-world-flow.md`; no secret key in any file or log; observed behaviour logged in `docs/SOURCES.md` |
 | T-005 | Repository skeleton and local gates | T-001 | §3.1, §6.2, §8.2 | done | Manifest (ESM, Node 22 or newer), committed lockfile, TypeScript, lint and format, Vitest; a test written first shows the CLI prints its version; the tool name lives in one constant; `.gitignore` added; the five every-task gates in §8.2 have exact commands and pass from a clean checkout; lint tool DEC. Needs Q-06 for the `license` field and `LICENSE` file |
 | T-006 | CI on Linux, macOS and Windows | T-005 | §8, §11 Q-05 | blocked: Q-05, workflow written, not yet run | A GitHub Actions matrix runs every §8.2 every-task gate in locked mode on the three systems and is green. Needs Q-05 |
-| T-101 | File writer with edit detection | G0 | §3.2, §5.4, INV-09, INV-11 | review | Hashes recorded in `.create-stellar-next.json`; an unchanged file is rewritten without complaint; an edited file is refused without `--force`; dry-run mode writes nothing; property test: writing the same plan twice changes nothing |
-| T-102 | Module format and base module | T-101 | §3.2, §3.4, §3.5, V-17 | review | A module is data plus files (files, scripts, dependencies, `.env` keys, doctor checks); base template has one page, `lib/stellar.ts`, `.env.example`, `AGENTS.md`, a one-line `CLAUDE.md` and the `check` script; templates lint and typecheck in place; Tailwind by default and `--style none` omits it |
-| T-103 | `create` for `--contracts none --wallet none` | T-102 | §5.1, INV-01, INV-02, INV-05, Q-07 | review | Generates a project in a temp directory; nothing in it depends on the tool; `.env.example` targets testnet; no wallet, local, registry or envs file exists |
-| T-104 | Non-interactive surface | T-103 | §5.1–§5.3, INV-06 to INV-09, INV-12 | review | `--yes`, `--json`, `--dry-run`, `--force`; no TTY behaves as `--yes`; exit codes 0, 1, 2, 3 each have a negative-case test; JSON validates against the committed schema; argument parser and prompt library DEC |
+| T-101 | File writer with edit detection | G0 | §3.2, §5.4, INV-09, INV-11 | done | Hashes recorded in `.create-stellar-next.json`; an unchanged file is rewritten without complaint; an edited file is refused without `--force`; dry-run mode writes nothing; property test: writing the same plan twice changes nothing |
+| T-102 | Module format and base module | T-101 | §3.2, §3.4, §3.5, V-17 | done | A module is data plus files (files, scripts, dependencies, `.env` keys, doctor checks); base template has one page, `lib/stellar.ts`, `.env.example`, `AGENTS.md`, a one-line `CLAUDE.md` and the `check` script; templates lint and typecheck in place; Tailwind by default and `--style none` omits it |
+| T-103 | `create` for `--contracts none --wallet none` | T-102 | §5.1, INV-01, INV-02, INV-05, Q-07 | done | Generates a project in a temp directory; nothing in it depends on the tool; `.env.example` targets testnet; no wallet, local, registry or envs file exists |
+| T-104 | Non-interactive surface | T-103 | §5.1–§5.3, INV-06 to INV-09, INV-12 | done | `--yes`, `--json`, `--dry-run`, `--force`; no TTY behaves as `--yes`; exit codes 0, 1, 2, 3 each have a negative-case test; JSON validates against the committed schema; argument parser and prompt library DEC |
 | T-105 | Generated-project e2e in CI | T-104, T-006 | §8 | blocked: Q-05, passes locally on macOS, CI job written, not yet run | On three systems: built CLI → temp directory → install → `npm run check` passes; `--dry-run` leaves the directory untouched |
 | T-201 | Command runner | G1 | B-1, INV-09, INV-12, INV-14 | todo | One function; logs the exact command; `create` runs the package-manager install through it (Q-07, DEC-011); `--dry-run` prints and does not execute; a failure becomes an error naming the cause and the fix; a missing binary exits `3` |
 | T-202 | Contracts module | T-201 | §3.4, V-06 | todo | Calls `stellar contract init`; adds the `contracts:*` scripts; writes `lib/contracts.ts`; the root `AGENTS.md` links to the one in `contracts/` |
