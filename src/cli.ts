@@ -32,6 +32,21 @@ export interface PromptQuestion {
 /** Resolves to the answer, or undefined when the user cancels. */
 export type PromptFn = (question: PromptQuestion) => Promise<string | undefined>;
 
+export interface SelectQuestion {
+  message: string;
+  options: { value: string; label: string; hint?: string }[];
+  initialValue: string;
+}
+
+/** Resolves to the chosen value, or undefined when the user cancels. */
+export type SelectFn = (question: SelectQuestion) => Promise<string | undefined>;
+
+/** Resolves to the answer, or undefined when the user cancels. */
+export type ConfirmFn = (question: {
+  message: string;
+  initialValue: boolean;
+}) => Promise<boolean | undefined>;
+
 export interface CliEnv {
   cwd?: string;
   /** npm_config_user_agent, used to detect the package manager. */
@@ -39,6 +54,8 @@ export interface CliEnv {
   /** True only when both stdin and stdout are terminals. Without a TTY the CLI acts as if --yes was passed. */
   isTTY?: boolean;
   prompt?: PromptFn;
+  select?: SelectFn;
+  confirm?: ConfirmFn;
   /** The running Node version, without the leading "v". */
   nodeVersion?: string;
   /** Builds the command runner. Tests pass a fake; the default runs real commands. */
@@ -199,14 +216,19 @@ async function runCreate(
   const canPrompt = interactive && env.prompt !== undefined;
   if (positionals[0] === undefined && !canPrompt) return invalid(missingDir);
 
-  // Options from later milestones fail plainly instead of half-working.
-  const contracts = values.contracts ?? "hello-world";
-  if (contracts !== "none" && contracts !== "hello-world" && !CONTRACT_ID.test(contracts)) {
+  // --envs needs the contract workspace, so it answers the contracts question too.
+  let contracts = values.contracts ?? (values.envs ? "hello-world" : undefined);
+  if (
+    contracts !== undefined &&
+    contracts !== "none" &&
+    contracts !== "hello-world" &&
+    !CONTRACT_ID.test(contracts)
+  ) {
     return invalid(
       `--contracts must be hello-world, none, or a contract ID (C followed by 55 characters). Got "${contracts}".`,
     );
   }
-  if (values.envs && contracts !== "hello-world") {
+  if (values.envs && contracts !== undefined && contracts !== "hello-world") {
     return invalid("--envs needs the contracts workspace: use it with --contracts hello-world.");
   }
 
@@ -253,6 +275,96 @@ async function runCreate(
     );
   }
 
+  // Ask for every choice whose flag was not given (T-107). Never with --yes, --json or no TTY.
+  const select = canPrompt ? env.select : undefined;
+  const confirm = canPrompt ? env.confirm : undefined;
+  const cancelled = () =>
+    fail(
+      ExitCode.Failure,
+      "CANCELLED",
+      "Cancelled. Nothing was written.",
+      "Run the command again.",
+    );
+
+  if (contracts === undefined && select && env.prompt) {
+    const choice = await select({
+      message: "Which contracts should the project start with?",
+      options: [
+        {
+          value: "hello-world",
+          label: "The hello-world contract",
+          hint: "a Rust workspace; setup deploys it to testnet",
+        },
+        { value: "none", label: "None", hint: "a Next.js app with Stellar network settings only" },
+        { value: "id", label: "A contract that is already deployed", hint: "you paste its ID" },
+      ],
+      initialValue: "hello-world",
+    });
+    if (choice === undefined) return cancelled();
+    if (choice === "id") {
+      const id = await env.prompt({
+        message: "Contract ID (C followed by 55 characters)",
+        placeholder: "C…",
+        validate: (v) =>
+          CONTRACT_ID.test(v ?? "") ? undefined : "A contract ID is C followed by 55 characters.",
+      });
+      if (id === undefined) return cancelled();
+      contracts = id;
+    } else {
+      contracts = choice;
+    }
+  }
+  contracts ??= "hello-world";
+
+  let wallet = values.wallet;
+  if (wallet === undefined && select) {
+    wallet = await select({
+      message: "Which wallet should the app connect to?",
+      options: [
+        { value: "none", label: "None", hint: "add one later" },
+        {
+          value: "wallets-kit",
+          label: "Stellar Wallets Kit",
+          hint: "many wallets behind one picker",
+        },
+        { value: "extension", label: "Varial browser extension", hint: "formerly Freighter" },
+      ],
+      initialValue: "none",
+    });
+    if (wallet === undefined) return cancelled();
+  }
+
+  let local = values.local;
+  if (local === undefined && confirm) {
+    local = await confirm({
+      message: "Add a local network in Docker (network:start)?",
+      initialValue: false,
+    });
+    if (local === undefined) return cancelled();
+  }
+
+  let envs = values.envs;
+  if (envs === undefined && contracts === "hello-world" && confirm) {
+    envs = await confirm({
+      message: "Add declarative environments (stellar.envs.toml)?",
+      initialValue: false,
+    });
+    if (envs === undefined) return cancelled();
+  }
+
+  let style = values.style;
+  if (style === undefined && select) {
+    style = await select({
+      message: "Which styling?",
+      options: [
+        { value: "tailwind", label: "Tailwind CSS" },
+        { value: "none", label: "None", hint: "plain CSS" },
+      ],
+      initialValue: "tailwind",
+    });
+    if (style === undefined) return cancelled();
+  }
+
   const packageManager =
     (values["package-manager"] as PackageManager | undefined) ??
     detectPackageManager(env.userAgent);
@@ -267,11 +379,11 @@ async function runCreate(
     dir,
     cwd,
     network: (values.network ?? "testnet") as "testnet" | "mainnet",
-    style: (values.style ?? "tailwind") as "tailwind" | "none",
+    style: (style ?? "tailwind") as "tailwind" | "none",
     contracts,
-    local: values.local ?? false,
-    wallet: values.wallet ?? "none",
-    envs: values.envs ?? false,
+    local: local ?? false,
+    wallet: wallet ?? "none",
+    envs: envs ?? false,
     packageManager,
     force: values.force ?? false,
     dryRun,
