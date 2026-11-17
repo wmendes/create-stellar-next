@@ -12,6 +12,7 @@ export interface CreateOptions {
   cwd: string;
   network: ComposeContext["network"];
   style: ComposeContext["style"];
+  contracts: ComposeContext["contracts"];
   packageManager: PackageManager;
   force: boolean;
   dryRun: boolean;
@@ -47,8 +48,18 @@ export async function create(options: CreateOptions): Promise<CreateResult> {
   const cd = options.dir === "." ? [] : [`cd ${options.dir}`];
   const allSteps = [...cd, installCommand(pm), runCommand(pm, "dev")];
 
-  // Check the package manager before writing, so a missing one leaves nothing behind.
-  if (!options.runner.available(pm)) {
+  const ctx: ComposeContext = {
+    projectName: basename(root),
+    network: options.network,
+    style: options.style,
+    contracts: options.contracts,
+  };
+  const { files, requires, commands } = compose(modulesFor(ctx), ctx);
+
+  // Check every binary before writing, so a missing one leaves nothing behind.
+  const needed = [...new Set([...requires, ...commands.map((c) => c.command), pm])];
+  const absent = needed.filter((binary) => !options.runner.available(binary));
+  if (absent.length > 0) {
     return {
       ok: false,
       root,
@@ -56,18 +67,14 @@ export async function create(options: CreateOptions): Promise<CreateResult> {
       next: [],
       error: {
         code: "MISSING_PREREQUISITE",
-        message: `\`${pm}\` was not found on PATH. Nothing was written.`,
-        fix: INSTALL_HINTS[pm] ?? `Install ${pm}, or choose another --package-manager.`,
+        message: `${absent.map((b) => `\`${b}\``).join(", ")} not found on PATH. Nothing was written.`,
+        fix: absent
+          .map((b) => INSTALL_HINTS[b] ?? `Install \`${b}\` and make sure it is on PATH.`)
+          .join("\n"),
       },
     };
   }
 
-  const ctx: ComposeContext = {
-    projectName: basename(root),
-    network: options.network,
-    style: options.style,
-  };
-  const { files } = compose(modulesFor(ctx), ctx);
   const plan = await planWrites(root, files, { force: options.force });
   const written = await applyPlan(root, plan, { dryRun: options.dryRun });
   if (!written.ok) {
@@ -78,6 +85,13 @@ export async function create(options: CreateOptions): Promise<CreateResult> {
       next: [],
       error: written.error && { ...written.error, code: "EDITED_FILES" },
     };
+  }
+
+  for (const command of commands) {
+    const result = await options.runner.run({ ...command, cwd: root });
+    if (!result.ok) {
+      return { ok: false, root, files: written.actions, next: [], error: result.error };
+    }
   }
 
   const install = await options.runner.run({

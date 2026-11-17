@@ -5,7 +5,12 @@ import { MANIFEST_FILE } from "../../src/lib/manifest.ts";
 import { ALL_MODULES, modulesFor } from "../../src/modules/index.ts";
 import { TOOL_NAME } from "../../src/name.ts";
 
-const ctx: ComposeContext = { projectName: "my-app", network: "testnet", style: "tailwind" };
+const ctx: ComposeContext = {
+  projectName: "my-app",
+  network: "testnet",
+  style: "tailwind",
+  contracts: "none",
+};
 
 function files(context: ComposeContext): Map<string, string> {
   const result = compose(modulesFor(context), context);

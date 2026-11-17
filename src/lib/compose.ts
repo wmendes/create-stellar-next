@@ -7,6 +7,15 @@ export interface ComposeContext {
   projectName: string;
   network: "testnet" | "mainnet";
   style: "tailwind" | "none";
+  contracts: "hello-world" | "none";
+}
+
+/** An external command a module runs after its files are written, through the runner (B-1). */
+export interface CommandSpec {
+  command: string;
+  args: string[];
+  /** What to tell the user if it fails. */
+  fix: string;
 }
 
 export interface ScriptSpec {
@@ -41,6 +50,12 @@ export interface Module {
   devDependencies?: Record<string, string>;
   env?: EnvKey[];
   doctor?: DoctorCheck[];
+  /** Binaries that must be on PATH before anything is written. */
+  requires?: string[];
+  /** Commands run in the project, in order, after the files are written. */
+  commands?: (ctx: ComposeContext) => CommandSpec[];
+  /** Lines for the Layout section of the generated AGENTS.md. */
+  layout?: string[];
 }
 
 export interface Composition {
@@ -50,6 +65,8 @@ export interface Composition {
   devDependencies: Record<string, string>;
   env: EnvKey[];
   doctor: DoctorCheck[];
+  requires: string[];
+  commands: CommandSpec[];
 }
 
 export const TEMPLATES_DIR = fileURLToPath(new URL("../../templates/", import.meta.url));
@@ -134,6 +151,9 @@ export function compose(modules: readonly Module[], ctx: ComposeContext): Compos
   const owners = { scripts: {}, dependencies: {}, devDependencies: {}, files: {}, env: {} };
   const env: EnvKey[] = [];
   const doctor: DoctorCheck[] = [];
+  const requires: string[] = [];
+  const commands: CommandSpec[] = [];
+  const layout: string[] = [];
   const raw: FileSpec[] = [];
   const fileOwners: Record<string, string> = owners.files;
 
@@ -148,6 +168,9 @@ export function compose(modules: readonly Module[], ctx: ComposeContext): Compos
       env.push(key);
     }
     doctor.push(...(m.doctor ?? []));
+    for (const r of m.requires ?? []) if (!requires.includes(r)) requires.push(r);
+    commands.push(...(m.commands?.(ctx) ?? []));
+    layout.push(...(m.layout ?? []));
     const files = [...m.templates.flatMap(loadTemplate), ...(m.files?.(ctx) ?? [])];
     for (const f of files) {
       if (fileOwners[f.path] !== undefined) {
@@ -158,7 +181,10 @@ export function compose(modules: readonly Module[], ctx: ComposeContext): Compos
     }
   }
 
-  const tokens = { SCRIPTS: renderScripts(scripts) };
+  const tokens = {
+    SCRIPTS: renderScripts(scripts),
+    LAYOUT: layout.map((line) => `- ${line}`).join("\n"),
+  };
   const files = raw.map((f) => ({
     path: f.path,
     content: replaceTokens(f.content, tokens, f.path),
@@ -180,5 +206,5 @@ export function compose(modules: readonly Module[], ctx: ComposeContext): Compos
     { path: ".env", content: envText },
   );
   files.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
-  return { files, scripts, dependencies, devDependencies, env, doctor };
+  return { files, scripts, dependencies, devDependencies, env, doctor, requires, commands };
 }

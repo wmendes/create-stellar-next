@@ -19,6 +19,12 @@ export const base: Module = {
         "Typecheck, lint, contract tests when `contracts/` exists, and `next build`. The definition of done",
     },
   },
+  layout: [
+    "`app/`: Next.js App Router pages",
+    "`lib/stellar.ts`: network settings, read from `.env`",
+    "`scripts/`: plain Node scripts behind the npm scripts",
+    "`.env`: configuration. `.env.example` lists every key. Identity names only, never secret keys",
+  ],
   dependencies: { next: "16.4.6", react: "19.3.0", "react-dom": "19.3.0" },
   devDependencies: {
     "@types/node": "22.20.5",

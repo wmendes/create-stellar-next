@@ -204,12 +204,12 @@ async function runCreate(
 
   // Options from later milestones fail plainly instead of half-working.
   const contracts = values.contracts ?? "hello-world";
-  if (contracts !== "none") {
+  if (contracts !== "none" && contracts !== "hello-world") {
     return fail(
       ExitCode.Failure,
       "NOT_BUILT",
       `--contracts ${contracts} is not built yet.`,
-      "Use --contracts none for now; contract support arrives in milestone M2.",
+      "Use --contracts hello-world or --contracts none for now; a contract ID arrives in T-206.",
     );
   }
   if ((values.wallet ?? "none") !== "none") {
@@ -288,6 +288,7 @@ async function runCreate(
     cwd,
     network: (values.network ?? "testnet") as "testnet" | "mainnet",
     style: (values.style ?? "tailwind") as "tailwind" | "none",
+    contracts,
     packageManager,
     force: values.force ?? false,
     dryRun,
