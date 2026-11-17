@@ -28,6 +28,20 @@ Read `docs/stellar/README.md` first: guides for this project's contracts, networ
 its versions. Before using a Stellar API from memory, check `docs/stellar/outdated.md`. Run `stellar skill` for the Stellar CLI's own guide for agents, and check
 `stellar <command> --help` before using a flag.
 
+## Raven
+
+Raven is a hosted MCP server for Stellar documentation, network data and ecosystem research, at
+`https://raven.stellar.org/mcp`. It is read-only: it cannot sign or submit transactions.
+
+- If you have Raven's tools (named `stellar-raven`, possibly listed by name only until you load them),
+  use them to verify Stellar facts before your code depends on them: SDK and CLI behaviour, RPC
+  methods, protocol limits, contract and asset IDs, SEPs. For this project's own scripts and versions,
+  its guides above still come first.
+- If you do not, tell the user once, early, that Raven is not installed and suggest adding it, then
+  carry on with this project's guides. In Claude Code:
+  `claude mcp add --transport http stellar-raven https://raven.stellar.org/mcp`, then sign in through
+  the browser when asked. Other agents: add it as an HTTP MCP server with that URL.
+
 ## Rules
 
 1. Use testnet unless the user names another network.

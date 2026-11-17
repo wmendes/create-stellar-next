@@ -23,6 +23,8 @@ First version. Not published.
   `envs:apply`.
 - Constructor arguments for deploys: `constructor.json` beside a contract, or `args` in `stellar.envs.toml`;
   `asset:native` resolves to the network's XLM contract.
+- `AGENTS.md` tells agents about Raven, the read-only Stellar MCP server: verify Stellar facts with it when
+  installed; otherwise tell the user once and suggest installing it.
 - `AGENTS.md`, `CLAUDE.md`, and guides in `docs/stellar/`, including outdated Stellar patterns and their
   replacements.
 

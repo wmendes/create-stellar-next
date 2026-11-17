@@ -72,6 +72,19 @@ describe.each(Object.entries(COMBOS))("docs for a %s project", (_name, ctx) => {
     expect(agents).toContain("stellar skill");
   });
 
+  it("points agents at Raven: use it when present, suggest installing it when not (T-210)", () => {
+    const agents = files.get("AGENTS.md") ?? "";
+    const raven = agents.slice(agents.indexOf("## Raven"), agents.indexOf("## Rules"));
+    expect(raven).toContain("https://raven.stellar.org/mcp");
+    expect(raven).toMatch(/read-only/i);
+    expect(raven).toMatch(/verify|check/i);
+    expect(raven).toMatch(/tell the user/i);
+    expect(raven).toContain(
+      "claude mcp add --transport http stellar-raven https://raven.stellar.org/mcp",
+    );
+    expect(agents.indexOf("## Raven")).toBeLessThan(agents.indexOf("## Rules"));
+  });
+
   it("never mentions the tool (B-4)", () => {
     for (const [path, text] of docs) expect(text, path).not.toContain(TOOL_NAME);
   });
