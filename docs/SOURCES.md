@@ -45,12 +45,16 @@ Every external fact that was checked, and every piece of code or document that w
 | 2026-11-17 | SDK generator options | `--wasm`, `--wasm-hash`, `--contract-id`, `--rpc-url`, `--network` (mainnet, testnet, futurenet, localnet), `--output-dir`, `--allow-http`, `--timeout`, `--headers`, `--contract-name`, `--overwrite` | SDK 17.4.0 | Installed: `npx @stellar/stellar-sdk@17.4.0 generate --help` |
 | 2026-11-17 | Without `--contract-name` the generated package is named `contract`; it builds with `tsc` and depends on `@stellar/stellar-sdk ^17.4.0` and `buffer 6.0.3` | as stated | SDK 17.4.0 | Observed generated `package.json` (T-004) |
 | 2026-11-17 | Stellar CLI aliases and identities are stored under `--config-dir`, defaulting to `$XDG_CONFIG_HOME/stellar` or `~/.config/stellar` | as stated | CLI manual | Raven, asOf 2026-11-17T15:41Z: https://developers.stellar.org/docs/tools/cli/stellar-cli (global options); observed with `--config-dir` in T-004 |
+| 2026-11-17 | Dev tool versions and licences resolved from the registry | TypeScript 7.0.2 (Apache-2.0), Vitest 5.1.0 (MIT), Biome 2.6.8 (MIT OR Apache-2.0), `@types/node` 22.20.5 | as stated | Package manager: `npm view <pkg> version license` |
+| 2026-11-17 | TypeScript 7.0.2 supports `--rewriteRelativeImportExtensions`, `--allowImportingTsExtensions`, `--erasableSyntaxOnly`, `--verbatimModuleSyntax` and `module: nodenext` | as stated | 7.0.2 | Installed: `npx tsc --help --all` |
+| 2026-11-17 | Biome config schema | `https://biomejs.dev/schemas/2.6.8/schema.json`, written by `biome init` | 2.6.8 | Installed: `npx biome init` |
 
 ## Copied code
 
-No code has been copied. The two rows below are documents written by the project's author, copied in unchanged.
+No code has been copied. The rows below are documents copied in unchanged.
 
 | Date       | Our path | Origin (URL + commit) | License | Task |
 |------------|----------|-----------------------|---------|------|
 | 2026-11-17 | `docs/reference/v0-documentation.md` | https://claude.ai/artifact/2xG6XVUVNmEoLYLf4ehFjU, revision 11, Markdown export, 15,024 bytes | Author's own document. Project licence is undecided (SPEC Q-06) | T-000 |
 | 2026-11-17 | `docs/reference/generators-not-frameworks.md` | https://claude.ai/artifact/9zjx3cCCHLi7Vn9ujmbRVv, revision 11, Markdown export, 13,732 bytes | Author's own document. Project licence is undecided (SPEC Q-06) | T-000 |
+| 2026-11-17 | `LICENSE` | https://www.apache.org/licenses/LICENSE-2.0.txt, fetched 2026-11-17, sha256 `cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30` | Apache-2.0 (the licence text itself) | T-005 |

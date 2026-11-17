@@ -386,6 +386,11 @@ Nothing is frozen today because nothing exists. `[INFERRED]` proposal (Q-15): ea
 | Node (development and CI) | 24.18.1 | `.node-version` | The supported floor for users is set in T-005 from the SDK's `engines`, `>=22.12.0` (V-08) |
 | Rust | 1.95.0 with target `wasm32v1-none` | `rust-toolchain.toml` | The docs require Rust 1.84.0 or newer for `wasm32v1-none` |
 | Stellar CLI | 30.0.1 | `.stellar-cli-version` | No standard pin file exists for it. CI and `doctor` read this file (DEC-005) |
+| npm (repository) | 11.16.0 | `package.json` `packageManager` | |
+| TypeScript | 7.0.2 | `package-lock.json` | Exact versions for every dev dependency (DEC-006) |
+| Vitest | 5.1.0 | `package-lock.json` | Supports Node `^22.12.0 \|\| ^24.0.0 \|\| >=26.0.0` |
+| Biome | 2.6.8 | `package-lock.json` | Lint and format |
+| `@types/node` | 22.20.5 | `package-lock.json` | Matches the supported Node floor, not the development Node |
 | Docker | not pinned | none | Only the client is known (29.9.2). The benchmark image pins its own versions in T-601 |
 
 ### §6.1a Observed on the development machine (2026-11-17)
@@ -490,11 +495,12 @@ Environment facts recorded with the baseline:
 
 | Gate | Checks | Runs | Command |
 |---|---|---|---|
-| Format | Formatting check | Every task | Set by T-005 |
-| Lint | Lint with warnings as errors, over `src/`, `templates/`, `test/`, `bench/` | Every task | Set by T-005 |
-| Types | TypeScript typecheck, including templates in place | Every task | Set by T-005 |
-| Unit | Vitest suite, locked install | Every task | Set by T-005 |
-| Build | CLI build | Every task | Set by T-005 |
+| Install | Locked install | Every task | `npm ci` |
+| Format | Formatting check (Biome; Markdown excluded) | Every task | `npm run format:check` |
+| Lint | Lint with warnings as errors, over every non-Markdown file Biome sees (`.gitignore` respected) | Every task | `npm run lint` |
+| Types | TypeScript typecheck of `src/`, `test/` and config. Templates join in T-102 | Every task | `npm run typecheck` |
+| Unit | Vitest suite | Every task | `npm test` |
+| Build | CLI build to `dist/` | Every task | `npm run build` |
 | Project e2e | Built CLI → temp directory → install → `npm run check` | Every task from T-105. Slow | Set by T-105 |
 | Contract e2e | `create --yes` → `setup` → Playwright reads the contract response, against a local network container | Every PR from T-207. Slow, needs Docker | Set by T-207 |
 | Testnet e2e | The same against testnet | Nightly from T-207 | Set by T-207 |
@@ -549,7 +555,7 @@ A dependency written `G1` means the human has approved that gate.
 | T-002 | Verify the ground-rule facts | T-000 | §0.3, §6.3 | review | V-01 to V-08, V-12 and V-13 each replaced by value, date and source in §6.3, with a matching line in `docs/SOURCES.md`; any contradiction with this spec is written to §11 and the dependent work stops |
 | T-003 | Resolve the extension wallet package | T-002 | §6.3 V-09, §11 Q-08 | review | The answer and its source are recorded; or "still unclear" is recorded, the wallet list becomes `wallets-kit` and `passkeys` only, and a DEC says so |
 | T-004 | Hand-run hello-world flow on testnet | T-001, T-002 | §6, §7 | review | Init, build, deploy, generate client and call from a script all succeed on testnet; the exact commands are saved in `docs/hello-world-flow.md`; no secret key in any file or log; observed behaviour logged in `docs/SOURCES.md` |
-| T-005 | Repository skeleton and local gates | T-001 | §3.1, §6.2, §8.2 | todo | Manifest (ESM, Node 22 or newer), committed lockfile, TypeScript, lint and format, Vitest; a test written first shows the CLI prints its version; the tool name lives in one constant; `.gitignore` added; the five every-task gates in §8.2 have exact commands and pass from a clean checkout; lint tool DEC. Needs Q-06 for the `license` field and `LICENSE` file |
+| T-005 | Repository skeleton and local gates | T-001 | §3.1, §6.2, §8.2 | review | Manifest (ESM, Node 22 or newer), committed lockfile, TypeScript, lint and format, Vitest; a test written first shows the CLI prints its version; the tool name lives in one constant; `.gitignore` added; the five every-task gates in §8.2 have exact commands and pass from a clean checkout; lint tool DEC. Needs Q-06 for the `license` field and `LICENSE` file |
 | T-006 | CI on Linux, macOS and Windows | T-005 | §8, §11 Q-05 | todo | A GitHub Actions matrix runs every §8.2 every-task gate in locked mode on the three systems and is green. Needs Q-05 |
 | T-101 | File writer with edit detection | G0 | §3.2, §5.4, INV-09, INV-11 | todo | Hashes recorded in `.create-stellar-next.json`; an unchanged file is rewritten without complaint; an edited file is refused without `--force`; dry-run mode writes nothing; property test: writing the same plan twice changes nothing |
 | T-102 | Module format and base module | T-101 | §3.2, §3.4, §3.5, V-17 | todo | A module is data plus files (files, scripts, dependencies, `.env` keys, doctor checks); base template has one page, `lib/stellar.ts`, `.env.example`, `AGENTS.md`, a one-line `CLAUDE.md` and the `check` script; templates lint and typecheck in place; Tailwind by default and `--style none` omits it |
@@ -726,6 +732,12 @@ Decision: `.node-version` (read by `actions/setup-node` through `node-version-fi
 Alternatives: `.tool-versions` for asdf or mise (rejected: CI and rustup do not read it without another tool). Recording versions only in this spec (rejected: CI cannot read them). Pinning Node to the SDK's floor, 22.12.0 (rejected for development: it is not what was tested here. It becomes the `engines` floor in T-005).
 Consequences: §6.1. T-006 must install exactly these versions. Docker is not pinned here.
 
+### DEC-006: Repository tooling for T-005 (2026-11-17, T-005)
+Context: the plan allows "ESLint and Prettier, or Biome", Vitest, TypeScript and ESM, and as few dependencies as possible.
+Decision: Biome 2.6.8 for both lint and format, configured from `biome init` with Markdown excluded. TypeScript 7.0.2 builds `src/` to `dist/`, with `rewriteRelativeImportExtensions` so sources import `.ts` paths that emit as `.js`. Vitest 5.1.0. `node:util` `parseArgs` handles the arguments until T-104 chooses the parser and prompt library. `package.json` sets `"private": true` so nothing can be published by accident (§0.3). The supported Node floor is `>=22.12.0`, the SDK's own floor. Every dev dependency is pinned exactly.
+Alternatives: ESLint plus Prettier (rejected: two tools and their plugins where one does both). Jest (rejected: the plan names Vitest). A third-party argument parser now (deferred: only `--version` and `--help` exist, so the built-in parser is enough and the choice belongs to T-104).
+Consequences: §6.1, §8.2. Biome's first run reformatted Markdown, including the frozen `CLAUDE.md`, the plan and `docs/reference/`. Those changes were reverted before any commit, and Markdown is now excluded from Biome. T-104 may replace `parseArgs` and logs its own DEC.
+
 ## §11 Open questions
 
 Each has a default. "Blocks" names the first task that cannot finish without an answer. An answer of "use the default" is enough.
@@ -737,6 +749,8 @@ Each has a default. "Blocks" names the first task that cannot finish without an 
 | Q-01 | Approved ("approved. proceed") |
 | Q-02 | Default taken with the approval: `docs/SOURCES.md` replaces `docs/verified-facts.md` and ships; `docs/SPEC.md` and `docs/reference/` do not ship |
 | Q-03 | Default taken with the approval: `PROGRESS.md` is dropped |
+| Q-05 | The human will create the GitHub repository and add it as `origin`. Until then work stays on local branches and T-006 cannot show CI green |
+| Q-06 | Apache-2.0 |
 | Q-08 | Resolved from the docs in T-003, not by the human: `@stellar/varial-sdk`, the renamed `@stellar/freighter-api` (V-09). All three wallet options stay in scope |
 | Q-04 | Default taken with the approval: (a) installed CLI output counts as installed source; (b) a fact Raven cannot ground goes to the human |
 
@@ -750,8 +764,6 @@ The human answered Q-01 explicitly. Q-02 to Q-04 were taken as the defaults writ
 | Q-02 | The plan lists `docs/verified-facts.md` as a deliverable shipped with the bundled docs. `CLAUDE.md` requires every checked fact in `docs/SOURCES.md`. May `docs/SOURCES.md` replace it, and should it ship in the package? | `docs/SOURCES.md` replaces it and ships. `docs/SPEC.md` and `docs/reference/` do not ship | T-002 |
 | Q-03 | May `PROGRESS.md` be dropped in favour of §9.2 and §10? | Yes, dropped | None |
 | Q-04 | Sources for Stellar facts. The plan says to run `stellar skill` and `stellar --help` and to read two `llms.txt` URLs. `CLAUDE.md` says Stellar information comes from Raven only. (a) Does output of the installed CLI count as "installed source"? (b) If Raven cannot ground a fact, may I read the official URLs the plan lists, or does it go to you? | (a) Yes. (b) It goes to you, as `CLAUDE.md` says | T-002 |
-| Q-05 | Git remote. G0 needs CI on three operating systems, which needs a GitHub repository. Who creates it, under which owner, public or private? And will you create `main` from `t-000-spec` once you approve (`git branch main t-000-spec`)? | No remote is created by the agent. M0 work continues on local branches, and T-006 waits | T-006, G0 |
-| Q-06 | Licence. No `LICENSE` file exists. The plan's default is Apache-2.0 | Apache-2.0, added in T-005 once you confirm | T-005 |
 
 ### Needed later
 
