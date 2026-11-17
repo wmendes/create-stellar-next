@@ -1,6 +1,6 @@
 // Rebuilds, redeploys and regenerates clients when a contract changes. Started by the dev script.
 // Never deploys to mainnet. Unchanged contracts are not redeployed.
-import { watch } from "node:fs";
+import { realpathSync, watch } from "node:fs";
 import { bindings, build, deploy, listContracts, loadConfig, StepError } from "./stellar.mjs";
 
 const RELEVANT = /(\.rs|Cargo\.toml)$/;
@@ -55,7 +55,10 @@ function rebuild() {
   }
 }
 
-watch("contracts", { recursive: true }, (_event, file) => {
+// Watch the canonical path. On Windows, a path reached through an 8.3 short name
+// (C:\Users\RUNNER~1\...) makes Node's watcher abort, because the events report the long name.
+const contractsDir = realpathSync.native("contracts");
+watch(contractsDir, { recursive: true }, (_event, file) => {
   const path = String(file ?? "").replace(/\\/g, "/");
   if (!RELEVANT.test(path) || path.split("/").includes("target")) return;
   clearTimeout(timer);
