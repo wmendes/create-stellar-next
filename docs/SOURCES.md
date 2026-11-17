@@ -23,6 +23,9 @@ Every external fact that was checked, and every piece of code or document that w
 | 2026-11-17 | git and GitHub CLI on the development machine | git 2.54.0, gh 2.92.0 (logged in) | n/a | Installed binaries: `git --version`, `gh --version`, `gh auth status` |
 | 2026-11-17 | Raven is reachable and lists these Stellar docs operations: `stellarDocs.search_docs`, `stellarDocs.search_sdk_cli_tools_docs`, `stellarDocs.search_doc_titles`, `stellarDocs.search_soroban_contract_docs`, `stellarDocs.search_wallet_dapp_docs`. These are search hits, which are cards and not evidence. No Stellar fact has been grounded yet | Reachable | n/a | Raven `search` (service `stellarDocs`), observed 2026-11-17 |
 | 2026-11-17 | The v0 documentation states it was "verified against `stellar-cli` 28.1.0". This is the document's own statement, not rechecked | 28.1.0 | n/a | `docs/reference/v0-documentation.md`, Prerequisites table |
+| 2026-11-17 | A second Stellar CLI binary in `~/.cargo/bin` | 28.1.0 (c0f4d0da891bbf214c08b8c5035ae6db80e9a3bd), shadowed on `PATH` by Homebrew's 30.0.1 | n/a | Installed binaries: `~/.cargo/bin/stellar --version`, `which stellar` |
+| 2026-11-17 | Homebrew's current stable `stellar-cli` | 30.0.1 | n/a | Package manager: `brew info stellar-cli` |
+| 2026-11-17 | Rust toolchains installed | `stable` (1.95.0), `1.95.0`, `1.93.0`; `1.95.0` has `wasm32v1-none` | n/a | Installed tool: `rustup toolchain list`, `rustup +1.95.0 target list --installed` |
 
 ## Copied code
 

@@ -379,9 +379,18 @@ Nothing is frozen today because nothing exists. `[INFERRED]` proposal (Q-15): ea
 
 ## §6 Dependencies and versions
 
-### §6.1 Observed on the development machine (2026-11-17)
+### §6.1 Pins (T-001, 2026-11-17)
 
-No pin file, manifest or lockfile exists yet. These are observations, not pins. T-001 turns them into pins. Sources are in `docs/SOURCES.md`.
+| Tool | Pin | Pin file | Note |
+|---|---|---|---|
+| Node (development and CI) | 24.18.1 | `.node-version` | The supported floor for users is set in T-005 from the SDK's `engines`, `>=22.12.0` (V-08) |
+| Rust | 1.95.0 with target `wasm32v1-none` | `rust-toolchain.toml` | The docs require Rust 1.84.0 or newer for `wasm32v1-none` |
+| Stellar CLI | 30.0.1 | `.stellar-cli-version` | No standard pin file exists for it. CI and `doctor` read this file (DEC-005) |
+| Docker | not pinned | none | Only the client is known (29.9.2). The benchmark image pins its own versions in T-601 |
+
+### §6.1a Observed on the development machine (2026-11-17)
+
+Sources are in `docs/SOURCES.md`.
 
 | Tool | Version | Note |
 |---|---|---|
@@ -389,7 +398,7 @@ No pin file, manifest or lockfile exists yet. These are observations, not pins. 
 | Node | v24.18.1 | The plan requires 22 or newer |
 | npm / pnpm / yarn / bun | 11.16.0 / 11.21.0 / 1.22.22 / 1.4.2 | All four `--package-manager` values are installed |
 | rustc / cargo | 1.95.0 / 1.95.0 | Installed targets: `aarch64-apple-darwin`, `wasm32v1-none` |
-| Stellar CLI | 30.0.1 | The v0 documentation says "verified against `stellar-cli` 28.1.0". That is two major versions behind what is installed (V-16) |
+| Stellar CLI | 30.0.1 from Homebrew, first on `PATH` | A second, older binary, 28.1.0, sits in `~/.cargo/bin` and is shadowed. The v0 documentation was verified against 28.1.0 |
 | Stellar CLI plugins | `scaffold` installed. No `registry` | `stellar-registry-cli` is needed from M4 |
 | Docker | client 29.9.2, **daemon not running** | Needed from M2 (Q-13) |
 | git / gh | 2.54.0 / 2.92.0 | `gh` is logged in. No remote exists (Q-05) |
@@ -429,7 +438,7 @@ The plan lists V-01 to V-08 as "confirmed on 2026-11-12, to recheck". None has b
 | V-13 | `[VERIFY: testnet RPC URL https://soroban-testnet.stellar.org and the testnet network passphrase]` | T-002 |
 | V-14 | `[VERIFY: RPC URL and network passphrase of the local network container]` | T-302 |
 | V-15 | `[VERIFY: package and API for the "passkeys" wallet option (smart account kit)]` | T-303 |
-| V-16 | `[VERIFY: which Stellar CLI version to pin and test against. Installed is 30.0.1; the v0 documentation tested 28.1.0]` | T-001 |
+| V-16 | Pin 30.0.1: the installed binary and Homebrew's current stable (checked 2026-11-17, `stellar --version`, `brew info stellar-cli`) | done |
 | V-17 | `[VERIFY: current Next.js version, and what create-next-app writes by default (AGENTS.md, CLAUDE.md)]` | T-102, T-602 |
 | V-18 | `[VERIFY: how each benchmark agent runs headless with a turn, time and token limit, and how its version is read]` | T-601 |
 
@@ -536,7 +545,7 @@ A dependency written `G1` means the human has approved that gate.
 | ID    | Title | Deps | Reads | Status | Acceptance criteria |
 |-------|-------|------|-------|--------|---------------------|
 | T-000 | Spec bootstrap | none | `CLAUDE.md`, plan | done | `docs/SPEC.md`, `docs/SOURCES.md` and the two reference documents exist on `t-000-spec`; baseline recorded; the human writes the approval line in §0 |
-| T-001 | Toolchain record and pins | T-000 | §0.3, §6 | todo | Versions of Node, Rust, the Stellar CLI and Docker resolved from the tools, not memory; V-16 resolved; pin files committed; §6 and `docs/SOURCES.md` updated |
+| T-001 | Toolchain record and pins | T-000 | §0.3, §6 | review | Versions of Node, Rust, the Stellar CLI and Docker resolved from the tools, not memory; V-16 resolved; pin files committed; §6 and `docs/SOURCES.md` updated |
 | T-002 | Verify the ground-rule facts | T-000 | §0.3, §6.3 | todo | V-01 to V-08, V-12 and V-13 each replaced by value, date and source in §6.3, with a matching line in `docs/SOURCES.md`; any contradiction with this spec is written to §11 and the dependent work stops |
 | T-003 | Resolve the extension wallet package | T-002 | §6.3 V-09, §11 Q-08 | todo | The answer and its source are recorded; or "still unclear" is recorded, the wallet list becomes `wallets-kit` and `passkeys` only, and a DEC says so |
 | T-004 | Hand-run hello-world flow on testnet | T-001, T-002 | §6, §7 | todo | Init, build, deploy, generate client and call from a script all succeed on testnet; the exact commands are saved in `docs/hello-world-flow.md`; no secret key in any file or log; observed behaviour logged in `docs/SOURCES.md` |
@@ -710,6 +719,12 @@ Alternatives: link only (rejected: other agents and CI cannot follow the link).
 Consequences: `docs/reference/` is frozen (§5.9). If the documents change upstream, the copies are stale until the human asks for a re-export.
 
 ---
+
+### DEC-005: Pin the toolchain with three small files (2026-11-17, T-001)
+Context: T-001 needs pins for Node, Rust and the Stellar CLI. The repository has no package manifest yet.
+Decision: `.node-version` (read by `actions/setup-node` through `node-version-file`, and by common Node version managers), `rust-toolchain.toml` (read by `rustup` and `cargo`), and `.stellar-cli-version` (one line, read by CI in T-006 and later by tests). Each holds the version installed and observed on the development machine.
+Alternatives: `.tool-versions` for asdf or mise (rejected: CI and rustup do not read it without another tool). Recording versions only in this spec (rejected: CI cannot read them). Pinning Node to the SDK's floor, 22.12.0 (rejected for development: it is not what was tested here. It becomes the `engines` floor in T-005).
+Consequences: §6.1. T-006 must install exactly these versions. Docker is not pinned here.
 
 ## §11 Open questions
 
