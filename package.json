@@ -23,7 +23,8 @@
     "lint": "biome lint --error-on-warnings .",
     "format:check": "biome format .",
     "format": "biome format --write .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:e2e": "node test/e2e/project.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.8",

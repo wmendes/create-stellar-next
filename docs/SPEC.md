@@ -512,7 +512,7 @@ Environment facts recorded with the baseline:
 | Types | TypeScript typecheck of `src/`, `test/` and config, then of `templates/` in place | Every task | `npm run typecheck` |
 | Unit | Vitest suite | Every task | `npm test` |
 | Build | CLI build to `dist/` | Every task | `npm run build` |
-| Project e2e | Built CLI → temp directory → install → `npm run check` | Every task from T-105. Slow | Set by T-105 |
+| Project e2e | Built CLI → temp directory → install → `npm run check`, for both style variants; then `--dry-run` and a second `create` must leave the tree unchanged | Every task from T-105. Slow (about 1 minute) | `npm run build && npm run test:e2e` |
 | Contract e2e | `create --yes` → `setup` → Playwright reads the contract response, against a local network container | Every PR from T-207. Slow, needs Docker | Set by T-207 |
 | Testnet e2e | The same against testnet | Nightly from T-207 | Set by T-207 |
 | Docs | Every command named in the generated `AGENTS.md` and the bundled docs exists and runs | Every task from T-501 | Set by T-501 |
@@ -574,7 +574,7 @@ A dependency written `G1` means the human has approved that gate.
 | T-102 | Module format and base module | T-101 | §3.2, §3.4, §3.5, V-17 | review | A module is data plus files (files, scripts, dependencies, `.env` keys, doctor checks); base template has one page, `lib/stellar.ts`, `.env.example`, `AGENTS.md`, a one-line `CLAUDE.md` and the `check` script; templates lint and typecheck in place; Tailwind by default and `--style none` omits it |
 | T-103 | `create` for `--contracts none --wallet none` | T-102 | §5.1, INV-01, INV-02, INV-05, Q-07 | review | Generates a project in a temp directory; nothing in it depends on the tool; `.env.example` targets testnet; no wallet, local, registry or envs file exists |
 | T-104 | Non-interactive surface | T-103 | §5.1–§5.3, INV-06 to INV-09, INV-12 | review | `--yes`, `--json`, `--dry-run`, `--force`; no TTY behaves as `--yes`; exit codes 0, 1, 2, 3 each have a negative-case test; JSON validates against the committed schema; argument parser and prompt library DEC |
-| T-105 | Generated-project e2e in CI | T-104, T-006 | §8 | todo | On three systems: built CLI → temp directory → install → `npm run check` passes; `--dry-run` leaves the directory untouched |
+| T-105 | Generated-project e2e in CI | T-104, T-006 | §8 | blocked: Q-05, passes locally on macOS, CI job written, not yet run | On three systems: built CLI → temp directory → install → `npm run check` passes; `--dry-run` leaves the directory untouched |
 | T-201 | Command runner | G1 | B-1, INV-09, INV-12, INV-14 | todo | One function; logs the exact command; `create` runs the package-manager install through it (Q-07, DEC-011); `--dry-run` prints and does not execute; a failure becomes an error naming the cause and the fix; a missing binary exits `3` |
 | T-202 | Contracts module | T-201 | §3.4, V-06 | todo | Calls `stellar contract init`; adds the `contracts:*` scripts; writes `lib/contracts.ts`; the root `AGENTS.md` links to the one in `contracts/` |
 | T-203 | `setup` script | T-202 | INV-03, INV-04, INV-10, V-01 to V-04, V-12 | todo | Identity, build, deploy with alias, generate client; a second run leaves the tree hash unchanged; identities by name only; secret-scan gate added |
