@@ -14,7 +14,8 @@ import { chromium } from "playwright";
 const RPC = { local: "http://localhost:8000/rpc", testnet: "https://soroban-testnet.stellar.org" };
 const network = process.env.E2E_NETWORK ?? "local";
 if (!(network in RPC)) throw new Error(`E2E_NETWORK must be local or testnet, got ${network}`);
-const bin = fileURLToPath(new URL("../../dist/bin.js", import.meta.url));
+// E2E_CLI points at another build of the CLI, such as one installed from the packed tarball (T-702).
+const bin = process.env.E2E_CLI ?? fileURLToPath(new URL("../../dist/bin.js", import.meta.url));
 const scan = fileURLToPath(new URL("../secret-scan.mjs", import.meta.url));
 const PORT = 3977;
 

@@ -528,6 +528,7 @@ Environment facts recorded with the baseline:
 | Contract e2e | `create --yes` → `setup` → `setup` again (git sees no change) → `check` → secret scan → `next start` → Playwright reads "Hello Stellar", against a local network container | Every PR from T-207, Linux only (hosted macOS and Windows runners have no Docker). Slow (several minutes), needs Docker | `npm run build && npm run test:e2e:contracts` |
 | Testnet e2e | The same against testnet | Nightly from T-207 (CI `schedule`) | `npm run build && E2E_NETWORK=testnet npm run test:e2e:contracts` |
 | Docs | Every script named in a generated `AGENTS.md` or bundled guide exists in that project, every guide link resolves, `AGENTS.md` keeps its shape (unit, `npm test`); every Stellar CLI, cargo and npx command they name answers `--help` in the installed tools | Every task from T-501; the tool part needs the Stellar CLI and cargo, so CI runs it in the contract job | `npm test` and `npm run build && npm run test:docs` |
+| Pack | `npm pack`, install the tarball in a temp directory, then the contract e2e against that copy | Before hand-back (G7). Slow, needs Docker | `npm run build && npm run test:pack` |
 | Frozen paths | Diff against the default branch touches no path in §5.9 | Every task from T-606 | Set by T-606 |
 | Secret scan | No secret-key pattern (`S` + 55 base32 characters) in any tracked file; the project e2e also scans each generated project | Every task from T-203 | `npm run scan:secrets`; `node test/secret-scan.mjs <dir>` for a directory. Extended to benchmark results by T-601 |
 
@@ -617,7 +618,7 @@ A dependency written `G1` means the human has approved that gate.
 | T-608 | Run Part B | T-602, T-606 | §9.3.4, Q-11 | todo | 10 tasks × 5 arms × at least 2 agents × 5 trials; exact agent and model versions recorded; raw results committed after the secret scan; BT8 retries on network errors |
 | T-609 | Results tables and failure labels | T-607, T-608 | §2, §9.3.5, §9.4 | todo | A script builds the `REPORT.md` tables from raw data, with 95% Wilson intervals; each failure carries one category; a missed threshold means fix the tool, rerun the full matrix and report both runs |
 | T-701 | README, migration note, changelog | G6 | §2 | review | Every claim is allowed by §2 and its evidence exists; the migration note for Scaffold Stellar users is sourced |
-| T-702 | Packed tarball e2e | T-701 | §8.3 G7 | todo | `npm pack`; the tarball passes the G2 end-to-end test; nothing is published |
+| T-702 | Packed tarball e2e | T-701 | §8.3 G7 | review | `npm pack`; the tarball passes the G2 end-to-end test; nothing is published |
 | T-703 | Final `REPORT.md` | T-609, T-702 | §9.4, §10, §11 | todo | Seven sections in the order of §9.4; deviations taken from §10; open questions from §11 |
 
 ### §9.3 Benchmark definition (M6)
@@ -999,6 +1000,12 @@ Context: T-701 writes the public documents, under the claims policy (§2).
 Decision: `README.md`, `CHANGELOG.md` and `docs/migrating-from-scaffold-stellar.md`. The README states v0 is unpublished and runs from a local build; lists what was tested (macOS arm64, the versions in §6, testnet and a local network) and says the three-system CI exists but has not run; and describes Docker only as a requirement of `--local`, not as a measured result (C-3 needs the benchmark). The migration note maps Scaffold Stellar 0.0.34 concepts to this tool and gives hand-migration steps. Each Scaffold fact in it was checked against a project generated with 0.0.34 (Vite 8, React 19, Stellar Wallets Kit from npm) and logged. `test/unit/claims.test.ts` checks the public documents for the banned words of §2, and for claims that need CI or benchmark evidence.
 Alternatives: README claims taken from the v0 documentation, such as "four commands from nothing to a contract call" and "every Scaffold Stellar feature has an equivalent" (rejected: not evidenced, and the second is no longer true without the registry).
 Consequences: §2 (the claims test is its enforcement).
+
+### DEC-034: Testing the packed tarball (2026-11-17, T-702)
+Context: G7 requires the packed tarball to pass the G2 end-to-end test, with nothing published.
+Decision: `test/e2e/pack.mjs` runs `npm pack` into a temp directory, installs the tarball with `npm install --prefix`, checks `--version`, and runs `test/e2e/contracts.mjs` with `E2E_CLI` pointing at the installed copy's `dist/bin.js`. Nothing touches a registry: `package.json` keeps `"private": true`, so even an accidental `npm publish` is refused.
+Alternatives: `npx <tarball>` (rejected: npx caches by name and version, so a rerun could test a stale copy).
+Consequences: §8.2 (Pack gate). Verified: `create-stellar-next-0.0.0.tgz` passed the contract loop on the local network, with Playwright reading "Hello Stellar". This also confirms the shipped file list (templates, schemas, the `_gitignore` rename).
 
 ## §11 Open questions
 
