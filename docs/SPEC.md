@@ -552,7 +552,7 @@ The human reviews at each. A gate that cannot pass after three distinct attempts
 
 ### §9.1 Milestones
 
-Current milestone: **M6 skipped for now by the human (2026-11-17)**. M5 is complete. A milestone does not start while the previous gate is failing.
+Current milestone: **M7** (M6 skipped for now by the human; G6 waived for M7, DEC-032). A milestone does not start while the previous gate is failing.
 
 Gate approvals: G0 approved by the human on 2026-11-17 ("Reviewed. Approved. Resume"), with CI not yet run because no remote exists. See DEC-008. G1 approved by the human on 2026-11-17 ("Approved, resume"), on the same terms: CI not yet run, T-105 stays `blocked` until its CI job is green. G2 approved by the human on 2026-11-17 ("approved, resume"), on the same terms: T-207 stays `blocked` until its CI job is green. G3: after the M3 report the human said "drop passkey from v0, drop registry also. then resume" without an explicit approval; M4 started then. G3, G4 and G5 approved by the human on 2026-11-17 (answer to the gate question), on the same terms as G0 to G2: CI not yet run. The human chose to skip the benchmark (M6) for now and to keep no remote (Q-05) for now.
 
@@ -616,7 +616,7 @@ A dependency written `G1` means the human has approved that gate.
 | T-607 | Run Part A | T-603 | §9.3.2 | todo | Five runs for each of A, B and C; raw results committed |
 | T-608 | Run Part B | T-602, T-606 | §9.3.4, Q-11 | todo | 10 tasks × 5 arms × at least 2 agents × 5 trials; exact agent and model versions recorded; raw results committed after the secret scan; BT8 retries on network errors |
 | T-609 | Results tables and failure labels | T-607, T-608 | §2, §9.3.5, §9.4 | todo | A script builds the `REPORT.md` tables from raw data, with 95% Wilson intervals; each failure carries one category; a missed threshold means fix the tool, rerun the full matrix and report both runs |
-| T-701 | README, migration note, changelog | G6 | §2 | todo | Every claim is allowed by §2 and its evidence exists; the migration note for Scaffold Stellar users is sourced |
+| T-701 | README, migration note, changelog | G6 | §2 | review | Every claim is allowed by §2 and its evidence exists; the migration note for Scaffold Stellar users is sourced |
 | T-702 | Packed tarball e2e | T-701 | §8.3 G7 | todo | `npm pack`; the tarball passes the G2 end-to-end test; nothing is published |
 | T-703 | Final `REPORT.md` | T-609, T-702 | §9.4, §10, §11 | todo | Seven sections in the order of §9.4; deviations taken from §10; open questions from §11 |
 
@@ -987,6 +987,18 @@ Context: T-504 adds this repository's own `AGENTS.md`; T-501 left `llms.txt` to 
 Decision: `AGENTS.md` points to `CLAUDE.md`, `docs/SPEC.md` and `docs/SOURCES.md`, and sets no rule of its own. `docs/llms.txt` follows the llms.txt shape (title, summary, link lists) and links every bundled guide in `templates/*/docs/stellar/`, both JSON schemas, the sources log, and the Stellar CLI agent guide. A unit test keeps it in step with the guides. `package.json` `files` ships `dist`, `templates` (minus `templates/_typecheck` and `templates/tsconfig.json`, which only typecheck the templates in this repository), `schemas`, `docs/llms.txt` and `docs/SOURCES.md`. `npm pack --dry-run` lists 68 files, no spec, and `templates/base/_gitignore`, which confirms that rename survives packing (part of T-702).
 Alternatives: rules in `AGENTS.md` (rejected: the spec says it states none; `CLAUDE.md` holds them).
 Consequences: §3.1. T-702 still runs the full end-to-end test on the packed tarball.
+
+### DEC-032: M7 starts without the benchmark (2026-11-17, G6 waived)
+Context: the human skipped M6 (no agents, access or budget yet) and chose to do M7 now. T-701 depends on G6, and `REPORT.md` was to hold benchmark results.
+Decision: the G6 dependency of M7 is waived by the human. M6's tasks (T-601 to T-609) stay `todo`. `REPORT.md` states that no benchmark ran, and that every threshold is therefore "not measured", not met or missed. The benchmark can still run later, and its tables then replace those sections.
+Alternatives: build the harness and run Part A first (offered, not chosen). Stop (offered, not chosen).
+Consequences: §9.1. Claims that need benchmark evidence (§2 C-3, C-6) cannot appear in the README.
+
+### DEC-033: README, migration note and changelog (2026-11-17, T-701)
+Context: T-701 writes the public documents, under the claims policy (§2).
+Decision: `README.md`, `CHANGELOG.md` and `docs/migrating-from-scaffold-stellar.md`. The README states v0 is unpublished and runs from a local build; lists what was tested (macOS arm64, the versions in §6, testnet and a local network) and says the three-system CI exists but has not run; and describes Docker only as a requirement of `--local`, not as a measured result (C-3 needs the benchmark). The migration note maps Scaffold Stellar 0.0.34 concepts to this tool and gives hand-migration steps. Each Scaffold fact in it was checked against a project generated with 0.0.34 (Vite 8, React 19, Stellar Wallets Kit from npm) and logged. `test/unit/claims.test.ts` checks the public documents for the banned words of §2, and for claims that need CI or benchmark evidence.
+Alternatives: README claims taken from the v0 documentation, such as "four commands from nothing to a contract call" and "every Scaffold Stellar feature has an equivalent" (rejected: not evidenced, and the second is no longer true without the registry).
+Consequences: §2 (the claims test is its enforcement).
 
 ## §11 Open questions
 
