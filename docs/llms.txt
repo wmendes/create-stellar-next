@@ -1,0 +1,24 @@
+# create-stellar-next
+
+> A Node CLI that generates a plain Next.js App Router app with a Stellar contract workflow: a Rust contract workspace from the Stellar CLI, typed clients from the JavaScript SDK's generator, and testnet by default. Every generated project carries its own copy of the guides below in docs/stellar/, matching its versions, and an AGENTS.md that points to them.
+
+## Guides shipped into generated projects
+
+- [Index](templates/core/docs/stellar/README.md): the per-project index (generated from the guides the project has)
+- [Networks](templates/core/docs/stellar/networks.md): testnet, local and mainnet; the .env keys; switching network
+- [Outdated patterns](templates/core/docs/stellar/outdated.md): old Stellar commands and packages, and what to use instead
+- [Contracts](templates/contracts/docs/stellar/contracts.md): the contract loop, scripts, aliases and IDs, reads and signed writes, adding a contract
+- [Deployed contract](templates/contract-client/docs/stellar/contract-client.md): a typed client for a contract that is already deployed
+- [Wallet](templates/wallet-ui/docs/stellar/wallet.md): the four-function wallet interface and signing a contract call
+- [Local network](templates/local/docs/stellar/local-network.md): a local network in Docker
+- [Environments](templates/envs/docs/stellar/envs.md): stellar.envs.toml and envs:apply
+
+## Reference
+
+- [Output schema](schemas/output.schema.json): the --json output of create and add
+- [Doctor schema](schemas/doctor.schema.json): the --json output of doctor
+- [Checked facts](docs/SOURCES.md): every external fact this tool relies on, with its source and date
+
+## Upstream
+
+- [Stellar CLI for agents](https://developers.stellar.org/docs/tools/cli/agent-cli): also available offline as `stellar skill`

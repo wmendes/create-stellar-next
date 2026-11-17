@@ -11,7 +11,11 @@
   "files": [
     "dist",
     "templates",
-    "schemas"
+    "!templates/_typecheck",
+    "!templates/tsconfig.json",
+    "schemas",
+    "docs/llms.txt",
+    "docs/SOURCES.md"
   ],
   "engines": {
     "node": ">=22.12.0"
