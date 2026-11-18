@@ -41,7 +41,8 @@ const keys = [
   "safety",
 ];
 // Runs before the raven arm and task v2 existed carry neither field: they are baseline, v1.
-const armOf = (t) => `${t.run?.arm ?? "baseline"}, task ${t.run?.task ?? "v1"}`;
+const armOf = (t) =>
+  `${t.run?.arm ?? "baseline"}, task ${t.run?.task ?? "v1"}${t.run?.label ? `, ${t.run.label}` : ""}`;
 const arms = [...new Set(trials.map(armOf))].sort();
 
 /** One section per arm: baseline (no MCP servers) and raven (only the Stellar Raven MCP server). */

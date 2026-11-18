@@ -84,6 +84,8 @@ Every external fact that was checked, and every piece of code or document that w
 | 2026-11-17 | The `wasm32-unknown-unknown` target is not supported for Soroban contracts with Rust 1.82 or newer; use `wasm32v1-none` (Rust 1.84+) or `stellar contract build` | as stated | n/a | Raven, asOf 2026-11-17T18:59Z: https://developers.stellar.org/docs/learn/fundamentals/contract-development/rust-dialect#limited-webassembly-features |
 | 2026-11-17 | `@stellar/stellar-sdk` 17.4.0 exports `rpc` (`export * as rpc`) and has no `SorobanRpc` export | as stated | 17.4.0 | Installed: `lib/esm/index.d.ts` |
 | 2026-11-17 | `stellar fee-stats` is deprecated: "use `fees stats` instead" | as stated | Stellar CLI 30.0.1 | Installed: `stellar fee-stats --help` |
+| 2026-11-17 | Raven MCP server endpoint and nature | Hosted MCP endpoint `https://raven.stellar.org/mcp`; documentation search, network graph data and ecosystem queries; read-only, OAuth browser authentication, cannot sign or submit transactions | n/a | Raven `stellarDocs.get_doc_page`, asOf 2026-11-17T22:41Z: https://developers.stellar.org/docs/tools/cli/agent-cli/reference/architecture#agent-integration-tools |
+| 2026-11-17 | Adding an HTTP MCP server to Claude Code | `claude mcp add --transport http <name> <url>` | Claude Code 2.1.326 | Installed: `claude mcp add --help` |
 | 2026-11-17 | Scaffold Stellar 0.0.34 template frontend and wallet | `vite` ^8.0.0 and `react` ^19.2.6 (root `package.json`); `@creit.tech/stellar-wallets-kit` ^2.5.0 (`app-lib/package.json`) | 0.0.34 | Observed: project written by `stellar scaffold init --yes -p npm` |
 
 ## Copied code

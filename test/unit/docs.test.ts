@@ -72,6 +72,31 @@ describe.each(Object.entries(COMBOS))("docs for a %s project", (_name, ctx) => {
     expect(agents).toContain("stellar skill");
   });
 
+  it("points agents at Raven: use it when present, suggest installing it when not (T-210)", () => {
+    const agents = files.get("AGENTS.md") ?? "";
+    const raven = agents.slice(agents.indexOf("## Raven"), agents.indexOf("## Rules"));
+    expect(raven).toContain("https://raven.stellar.org/mcp");
+    expect(raven).toMatch(/read-only/i);
+    expect(raven).toMatch(/verify|check/i);
+    expect(raven).toMatch(/tell the user/i);
+    expect(raven).toContain(
+      "claude mcp add --transport http stellar-raven https://raven.stellar.org/mcp",
+    );
+    expect(agents.indexOf("## Raven")).toBeLessThan(agents.indexOf("## Rules"));
+  });
+
+  it("says when Raven must be used, that passing tests do not replace it, and to report lookups (T-210)", () => {
+    const agents = files.get("AGENTS.md") ?? "";
+    const raven = agents.slice(agents.indexOf("## Raven"), agents.indexOf("## Rules"));
+    // The moments that trigger a lookup, not just a general "verify facts".
+    expect(raven).toMatch(/before writing code against a Stellar API/i);
+    expect(raven).toMatch(/asset contract IDs/i);
+    expect(raven).toMatch(/error you do not recognise/i);
+    // Haiku skipped Raven because compiling and testing felt like verification.
+    expect(raven).toMatch(/passing tests (is|are) not a reason to skip/i);
+    expect(raven).toMatch(/final report/i);
+  });
+
   it("never mentions the tool (B-4)", () => {
     for (const [path, text] of docs) expect(text, path).not.toContain(TOOL_NAME);
   });

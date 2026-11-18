@@ -37,6 +37,9 @@ const ARM = MCP === "raven" ? "raven" : "baseline";
 // what it can verify (see README.md).
 const TASK = flag("--task", "v2");
 if (!["v1", "v2"].includes(TASK)) throw new Error(`--task must be v1 or v2, not ${TASK}`);
+// Optional label for a change outside the prompt (for example the generated AGENTS.md wording), so
+// the summary does not pool runs made on different CLI builds.
+const LABEL = flag("--label", "");
 // Same name and URL as the developer's own entry, so Claude Code reuses its stored OAuth sign-in.
 const RAVEN_CONFIG = JSON.stringify({
   mcpServers: { "stellar-raven": { type: "http", url: "https://raven.stellar.org/mcp" } },
@@ -126,7 +129,7 @@ if (args.includes("--probe")) {
 const prompt = readFileSync(join(here, `prompt-${TASK}.md`), "utf8");
 const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
 for (let n = 1; n <= TRIALS; n++) {
-  const id = `${MODEL}-${ARM}-${TASK}-${stamp}-t${n}`;
+  const id = `${MODEL}-${ARM}-${TASK}${LABEL ? `-${LABEL}` : ""}-${stamp}-t${n}`;
   const results = join(here, "results", id);
   mkdirSync(results, { recursive: true });
   const work = mkdtempSync(join(tmpdir(), "csn-bench-"));
@@ -175,7 +178,7 @@ for (let n = 1; n <= TRIALS; n++) {
   );
   writeFileSync(
     join(results, "run.json"),
-    `${JSON.stringify({ id, model: MODEL, arm: ARM, task: TASK, budgetUsd: Number(BUDGET), wallMs: run.wallMs, exitCode: run.code, timedOut: run.timedOut, workDir: work }, null, 2)}\n`,
+    `${JSON.stringify({ id, model: MODEL, arm: ARM, task: TASK, label: LABEL || undefined, cliCommit: spawnSync("git", ["rev-parse", "--short", "HEAD"], { cwd: repo, encoding: "utf8" }).stdout.trim(), budgetUsd: Number(BUDGET), wallMs: run.wallMs, exitCode: run.code, timedOut: run.timedOut, workDir: work }, null, 2)}\n`,
   );
 }
 

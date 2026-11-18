@@ -1,0 +1,11 @@
+{
+  "id": "claude-haiku-5-5-baseline-v2-2026-11-17T22-53-02-t3",
+  "model": "claude-haiku-5-5",
+  "arm": "baseline",
+  "task": "v2",
+  "budgetUsd": 3,
+  "wallMs": 225454,
+  "exitCode": 0,
+  "timedOut": false,
+  "workDir": "/var/folders/15/8mz80_5n6mg75f5t458dq0gr0000gn/T/csn-bench-L24KGm"
+}
