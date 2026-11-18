@@ -30,17 +30,15 @@ its versions. Before using a Stellar API from memory, check `docs/stellar/outdat
 
 ## Raven
 
-Raven is a hosted MCP server for Stellar documentation, network data and ecosystem research, at
-`https://raven.stellar.org/mcp`. It is read-only: it cannot sign or submit transactions.
+Raven (`https://raven.stellar.org/mcp`) is a read-only MCP server for Stellar docs, network data and ecosystem research.
 
-- If you have Raven's tools (named `stellar-raven`, possibly listed by name only until you load them),
-  use them to verify Stellar facts before your code depends on them: SDK and CLI behaviour, RPC
-  methods, protocol limits, contract and asset IDs, SEPs. For this project's own scripts and versions,
-  its guides above still come first.
-- If you do not, tell the user once, early, that Raven is not installed and suggest adding it, then
-  carry on with this project's guides. In Claude Code:
-  `claude mcp add --transport http stellar-raven https://raven.stellar.org/mcp`, then sign in through
-  the browser when asked. Other agents: add it as an HTTP MCP server with that URL.
+If its tools are available (`stellar-raven`: `search`, then `execute`), use them instead of memory at these moments:
+- before writing code against a Stellar API (soroban-sdk, stellar-sdk, a CLI command) not already used in this project;
+- for network facts (asset contract IDs, RPC and friendbot URLs, fees, limits), SEPs, tokens, wallets and ecosystem projects;
+- when a build, test, deploy or invoke fails with an error you do not recognise.
+Compiling and tests check your code; Raven checks the assumptions behind it, so passing tests is not a reason to skip it. This project's guides still come first for its own scripts and versions. List each lookup in your final report.
+
+If they are not available, tell the user once, early, that Raven is not installed and how to add it (Claude Code: `claude mcp add --transport http stellar-raven https://raven.stellar.org/mcp`, then sign in through the browser; other agents: an HTTP MCP server with that URL), then carry on with this project's guides.
 
 ## Rules
 
