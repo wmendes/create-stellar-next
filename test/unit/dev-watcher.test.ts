@@ -1,13 +1,14 @@
 import { readFileSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { type ChildProcess, spawnSync } from "node:child_process";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createHarness, type Harness } from "./project-harness.ts";
 
 /** The generated project's `dev` script and contract watcher, run against stub binaries. */
 
 let h: Harness;
-let children: { kill: () => boolean }[] = [];
+let children: ChildProcess[] = [];
 
 beforeEach(async () => {
   h = await createHarness();
@@ -17,18 +18,26 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
-  for (const c of children) c.kill();
+  // On Windows, killing a process leaves its children running; end the whole tree.
+  for (const c of children) {
+    if (process.platform === "win32" && c.pid) {
+      spawnSync("taskkill", ["/pid", String(c.pid), "/T", "/F"], { stdio: "ignore" });
+    } else {
+      c.kill();
+    }
+  }
   children = [];
   await h.cleanup();
 });
 
-async function until(check: () => boolean, ms = 15_000): Promise<void> {
+/** Wait for a condition; on timeout, include the process output, so a CI failure explains itself. */
+async function until(check: () => boolean, output: () => string, ms = 15_000): Promise<void> {
   const end = Date.now() + ms;
   while (Date.now() < end) {
     if (check()) return;
     await new Promise((r) => setTimeout(r, 100));
   }
-  throw new Error("timed out");
+  throw new Error(`timed out. Output so far:\n${output()}\nCalls: ${h.calls().join(" | ")}`);
 }
 
 const count = (prefix: string) => h.calls().filter((c) => c.startsWith(prefix)).length;
@@ -42,10 +51,10 @@ function startWatcher(env: Record<string, string> = {}) {
 describe("contract watcher", () => {
   it("rebuilds, redeploys and regenerates when a contract source file changes", async () => {
     const watcher = startWatcher({ STUB_WASM: "wasm-v2" });
-    await until(() => watcher.output().includes("Watching contracts/"));
+    await until(() => watcher.output().includes("Watching contracts/"), watcher.output);
     const builds = count("stellar contract build");
     await writeFile(join(h.root, "contracts/contracts/hello-world/src/lib.rs"), "// v2\n");
-    await until(() => count("npx tsc") >= 2);
+    await until(() => count("npx tsc") >= 2, watcher.output);
     expect(count("stellar contract build")).toBe(builds + 1);
     expect(count("stellar contract deploy")).toBe(2);
     const ids = JSON.parse(readFileSync(join(h.root, "packages/contract-ids.json"), "utf8"));
@@ -54,7 +63,7 @@ describe("contract watcher", () => {
 
   it("ignores build output under contracts/target, so a build cannot trigger another", async () => {
     const watcher = startWatcher();
-    await until(() => watcher.output().includes("Watching contracts/"));
+    await until(() => watcher.output().includes("Watching contracts/"), watcher.output);
     const builds = count("stellar contract build");
     await mkdir(join(h.root, "contracts/target/x"), { recursive: true });
     await writeFile(join(h.root, "contracts/target/x/out.rs"), "// build output\n");
@@ -64,13 +73,13 @@ describe("contract watcher", () => {
 
   it("keeps watching after a failed step and says so", async () => {
     const watcher = startWatcher();
-    await until(() => watcher.output().includes("Watching contracts/"));
+    await until(() => watcher.output().includes("Watching contracts/"), watcher.output);
     await writeFile(
       join(h.root, ".env"),
       "NEXT_PUBLIC_STELLAR_NETWORK=nowhere\nSTELLAR_ACCOUNT=dev\n",
     );
     await writeFile(join(h.root, "contracts/contracts/hello-world/src/lib.rs"), "// v3\n");
-    await until(() => watcher.output().includes("✗"));
+    await until(() => watcher.output().includes("✗"), watcher.output);
     expect(watcher.exitCode).toBeNull();
     expect(watcher.output()).toContain("Still watching");
   });
@@ -91,35 +100,22 @@ describe("contract watcher", () => {
 });
 
 describe("dev", () => {
-  it("starts next dev and the watcher together", async () => {
+  it("runs the project's own Next.js entry point with Node, plus the watcher", async () => {
     const dev = h.start("dev.mjs");
     children.push(dev);
-    await until(() => h.calls().some((c) => c.startsWith("next dev")));
-    await until(() => dev.output().includes("Watching contracts/"));
+    await until(() => h.calls().some((c) => c.startsWith("next dev")), dev.output);
+    await until(() => dev.output().includes("Watching contracts/"), dev.output);
   });
 
-  it("finds next in node_modules/.bin when run directly, without npm run", async () => {
-    const { copyFile, rm } = await import("node:fs/promises");
-    const bin = join(h.root, "node_modules/.bin");
-    await mkdir(bin, { recursive: true });
-    // Move the entry points off PATH; the .js they call stays where they expect it.
-    for (const f of ["next", "next.js", "next.cmd"]) {
-      await copyFile(join(h.stubs, f), join(bin, f)).catch(() => undefined);
-    }
-    for (const f of ["next", "next.cmd"]) await rm(join(h.stubs, f), { force: true });
-    const dev = h.start("dev.mjs");
-    children.push(dev);
-    await until(() => h.calls().some((c) => c.startsWith("next dev")));
-  });
-
-  it("stops the watcher and explains when next cannot start", async () => {
+  it("exits non-zero, starts nothing, and names the install when Next.js is missing", async () => {
     const { rm } = await import("node:fs/promises");
-    for (const f of ["next", "next.cmd"]) await rm(join(h.stubs, f), { force: true });
+    await rm(join(h.root, "node_modules/next"), { recursive: true });
     const dev = h.start("dev.mjs");
     children.push(dev);
     const code = await new Promise((resolve) => dev.on("exit", resolve));
     expect(code).not.toBe(0);
     expect(dev.output()).toContain("install");
+    expect(dev.output()).not.toContain("Watching contracts/");
   });
 
   it("starts only next dev when the project has no contracts", async () => {
@@ -127,7 +123,7 @@ describe("dev", () => {
     await rm(join(h.root, "contracts"), { recursive: true });
     const dev = h.start("dev.mjs");
     children.push(dev);
-    await until(() => h.calls().some((c) => c.startsWith("next dev")));
+    await until(() => h.calls().some((c) => c.startsWith("next dev")), dev.output);
     await new Promise((r) => setTimeout(r, 500));
     expect(dev.output()).not.toContain("Watching contracts/");
   });

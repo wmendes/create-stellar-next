@@ -17,8 +17,8 @@ waived its gate for release preparation (DEC-032).
 | Arm A time to first contract call under 10 minutes, excluding toolchain install | Not measured |
 
 The tool itself is built through milestone M5, and its release checks pass on macOS: the packed tarball
-passes the contract-loop end-to-end test (T-702). CI for Linux, macOS and Windows is written but has
-never run, because the repository has no remote yet (Q-05).
+passes the contract-loop end-to-end test (T-702). CI runs on Linux and Windows since the repository got
+its remote; macOS was taken out of CI for now and is checked locally (DEC-036).
 
 ## 2. Part A: starter metrics for arms A, B and C
 
@@ -60,7 +60,7 @@ deploys there; tests cover each.
 | Wallets | Stellar Wallets Kit picker opens and Varial reports a missing extension, in a real browser |
 | Agent layer | `AGENTS.md` under 80 lines; docs test: every named script exists, and 16 named CLI commands answer `--help` |
 | Release | `npm pack` tarball installed and run through the contract loop (T-702); nothing published |
-| Platforms | macOS arm64 only. Linux and Windows CI is written, not run |
+| Platforms | macOS arm64, locally. CI on Linux and Windows: the gates passed on both after two fixes (ignored fixtures, Windows watcher crash); the end-to-end jobs are still to run |
 
 ### Deviations from the plan
 

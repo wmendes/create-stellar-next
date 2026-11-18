@@ -102,10 +102,11 @@ export function findExecutable(
   env: Record<string, string | undefined>,
   platform: NodeJS.Platform,
 ): string | undefined {
-  const extensions =
-    platform === "win32"
-      ? ["", ...(env.PATHEXT ?? ".COM;.EXE;.BAT;.CMD").split(";").map((e) => e.toLowerCase())]
-      : [""];
+  // Windows runs a file from PATH only by appending a PATHEXT extension, unless the name already
+  // has one. Node ships an extensionless `npm` shell script beside `npm.cmd`; it must not match.
+  const pathext = (env.PATHEXT ?? ".COM;.EXE;.BAT;.CMD").split(";").map((e) => e.toLowerCase());
+  const hasExtension = pathext.some((e) => e !== "" && name.toLowerCase().endsWith(e));
+  const extensions = platform === "win32" ? (hasExtension ? [""] : pathext) : [""];
   const candidates = (base: string) => extensions.map((ext) => base + ext);
   if (isAbsolute(name) || name.includes("/") || name.includes("\\")) {
     return candidates(name).find((c) => isExecutable(c, platform));
