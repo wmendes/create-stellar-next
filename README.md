@@ -16,6 +16,10 @@ npm run setup                   # identity, build, deploy to testnet, typed clie
 npm run dev                     # http://localhost:3000 shows the contract's reply
 ```
 
+Run in a terminal, `create` asks about contracts, network, wallet, local network, environments,
+styling and package manager, skipping any choice you give as a flag. With `--yes`, `--json` or no terminal it asks nothing and uses
+the defaults.
+
 `setup` creates and funds a testnet identity named `dev` in your Stellar CLI config, builds the
 hello-world contract, deploys it, and generates its client. Run it again at any time: contracts that
 did not change are not redeployed.
