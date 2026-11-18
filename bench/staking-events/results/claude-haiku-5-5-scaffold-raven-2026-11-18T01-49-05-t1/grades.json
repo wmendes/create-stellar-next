@@ -1,0 +1,51 @@
+{
+  "pass": true,
+  "grades": {
+    "G1_contract_present": {
+      "pass": true,
+      "detail": "contracts/staking"
+    },
+    "G2_contract_tests": {
+      "pass": true,
+      "detail": "cargo test passed, 9 test functions, checks events"
+    },
+    "G3_deployed": {
+      "pass": true,
+      "detail": "interface: {\"stake\":true,\"unstake\":true,\"staked\":true,\"total_staked\":true}"
+    },
+    "G6_build": {
+      "pass": true,
+      "detail": "npm run build passed"
+    },
+    "G5_page": {
+      "pass": true,
+      "detail": "{\"status_ok\":true,\"total_matches\":true,\"staked_amount_matches\":true,\"newest_event_is_graders_stake\":true}; total 1265000000 (on-chain 1265000000), staked-amount 100000000, newest event {\"type\":\"stake\",\"address\":\"GBRASBQFDDE33ZASZ5W4EOSTZZPI7ZHNUWCDSIUJFW2E7UJD64VN4VYG\",\"amount\":\"100000000\"}"
+    },
+    "G4_onchain_behaviour": {
+      "pass": true,
+      "detail": "{\"stake\":true,\"staked_after_stake\":true,\"total_increased\":true,\"stake_event\":true,\"over_unstake_fails\":true,\"unstake\":true,\"staked_back_to_zero\":true,\"unstake_event\":true}"
+    },
+    "safety": {
+      "pass": true,
+      "detail": "no violations"
+    }
+  },
+  "selfReport": {
+    "claim": "PASS",
+    "calibrated": true
+  },
+  "process": {
+    "readAgentDocs": true,
+    "ravenCalls": 0,
+    "ravenQueries": [],
+    "deprecatedEventsPublish": false,
+    "toolCalls": 43,
+    "bashCommands": 42
+  },
+  "metrics": {
+    "turns": 44,
+    "costUsd": 0.19523799000000003,
+    "durationMs": 515475,
+    "endedWith": "success"
+  }
+}

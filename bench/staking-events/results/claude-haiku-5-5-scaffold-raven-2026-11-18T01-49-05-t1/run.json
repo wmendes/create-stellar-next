@@ -1,0 +1,12 @@
+{
+  "id": "claude-haiku-5-5-scaffold-raven-2026-11-18T01-49-05-t1",
+  "model": "claude-haiku-5-5",
+  "starter": "scaffold",
+  "arm": "raven",
+  "cliCommit": "7f19e12",
+  "budgetUsd": 3,
+  "wallMs": 517369,
+  "exitCode": 0,
+  "timedOut": false,
+  "workDir": "/var/folders/15/8mz80_5n6mg75f5t458dq0gr0000gn/T/csn-bench-pxETED"
+}
