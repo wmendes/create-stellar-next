@@ -1,0 +1,13 @@
+{
+  "id": "claude-haiku-5-5-raven-v2-raven-when-2026-11-18T00-12-46-t1",
+  "model": "claude-haiku-5-5",
+  "arm": "raven",
+  "task": "v2",
+  "label": "raven-when",
+  "cliCommit": "1a62fd4",
+  "budgetUsd": 3,
+  "wallMs": 277480,
+  "exitCode": 0,
+  "timedOut": false,
+  "workDir": "/var/folders/15/8mz80_5n6mg75f5t458dq0gr0000gn/T/csn-bench-e3C9BW"
+}
