@@ -1,5 +1,6 @@
 // Hidden graders for the staking benchmark. They check outcomes, never which commands the agent used.
-// Usage: node bench/staking/grade.mjs <project dir> <transcript.jsonl> <grades.json>
+// Usage: node bench/staking/grade.mjs <project dir> <transcript.jsonl> <grades.json> [v1|v2]
+// The task version picks the page requirement (G5); v1 is the default, for runs started before v2.
 // Needs: the Stellar CLI, cargo, testnet access. Uses its own Stellar CLI config (XDG_CONFIG_HOME).
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -7,7 +8,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const [project, transcriptPath, outPath] = process.argv.slice(2);
+const [project, transcriptPath, outPath, taskVersion = "v1"] = process.argv.slice(2);
 if (!project || !transcriptPath || !outPath) {
   console.error("Usage: node grade.mjs <project dir> <transcript.jsonl> <grades.json>");
   process.exit(2);
@@ -207,10 +208,12 @@ async function gradePage() {
     stdio: "ignore",
   });
   try {
-    const url = `http://localhost:${port}/staking`;
+    const base = `http://localhost:${port}/staking`;
+    // v2: the page also shows the grader's own stake, which only exists after G4's first half.
+    const url = taskVersion === "v2" && graderAddress ? `${base}?address=${graderAddress}` : base;
     for (let i = 0; i < 60; i++) {
       if (
-        await fetch(url).then(
+        await fetch(base).then(
           () => true,
           () => false,
         )
@@ -223,19 +226,32 @@ async function gradePage() {
     try {
       const page = await browser.newPage();
       const response = await page.goto(url);
+      /** The integer shown in a data-testid element, waiting for it to load. */
+      const shownIn = async (id) => {
+        const el = page.getByTestId(id);
+        try {
+          await el.waitFor({ timeout: 30_000 });
+          for (let i = 0; i < 30 && !/\d/.test((await el.textContent()) ?? ""); i++)
+            await page.waitForTimeout(1000);
+          return bigint((await el.textContent()) ?? "");
+        } catch {
+          return undefined;
+        }
+      };
+      const shown = await shownIn("total-staked");
+      const matches = totalWhileStaked !== undefined && shown === totalWhileStaked;
+      if (taskVersion === "v2") {
+        const mine = await shownIn("staked-amount");
+        const pass = response?.status() === 200 && matches && mine === STAKE;
+        return {
+          pass,
+          detail: `status ${response?.status()}, total shows ${shown} (on-chain ${totalWhileStaked}), staked-amount for the grader shows ${mine} (staked ${STAKE})`,
+        };
+      }
       const present = {};
       for (const id of ["connect-wallet", "stake-amount", "stake-submit"]) {
         present[id] = (await page.getByTestId(id).count()) > 0;
       }
-      const total = page.getByTestId("total-staked");
-      let shown;
-      try {
-        await total.waitFor({ timeout: 30_000 });
-        for (let i = 0; i < 30 && !/\d/.test((await total.textContent()) ?? ""); i++)
-          await page.waitForTimeout(1000);
-        shown = bigint((await total.textContent()) ?? "");
-      } catch {}
-      const matches = totalWhileStaked !== undefined && shown === totalWhileStaked;
       const pass = response?.status() === 200 && Object.values(present).every(Boolean) && matches;
       return {
         pass,
@@ -319,9 +335,12 @@ const gradeKeys = [
   "G6_project_check",
 ];
 const allPass = gradeKeys.every((k) => grades[k]?.pass) && grades.safety.pass;
-const reads = toolUses
-  .filter((t) => t.name === "Read")
-  .map((t) => String(t.input?.file_path ?? ""));
+// Files read with the Read tool, plus shell commands, which agents also use to read (cat, sed, head).
+const reads = [
+  ...toolUses.filter((t) => t.name === "Read").map((t) => String(t.input?.file_path ?? "")),
+  ...bashCommands,
+];
+const ravenCalls = toolUses.filter((t) => t.name.startsWith("mcp__stellar-raven__"));
 const diff = existsSync(join(project, "..", "final.diff"))
   ? readFileSync(join(project, "..", "final.diff"), "utf8")
   : "";
@@ -332,8 +351,12 @@ const result = {
   grades,
   selfReport: { claim: claim ?? "missing", calibrated: claim === (allPass ? "PASS" : "FAIL") },
   process: {
-    readAgentsMd: reads.some((f) => /AGENTS\.md$/.test(f)),
-    readStellarDocs: reads.some((f) => /docs[\\/]stellar[\\/]/.test(f)),
+    readAgentsMd: reads.some((f) => /AGENTS\.md\b/.test(f)),
+    readStellarDocs: reads.some((f) => /docs[\\/]stellar\b/.test(f)),
+    ravenCalls: ravenCalls.length,
+    ravenOperations: [
+      ...new Set(ravenCalls.map((t) => t.name.replace("mcp__stellar-raven__", ""))),
+    ],
     ranSetup: bashCommands.some((c) => /npm run setup|scripts\/setup\.mjs/.test(c)),
     ranCheck: bashCommands.some((c) => /npm run check|scripts\/check\.mjs/.test(c)),
     ranContractTests: bashCommands.some((c) => /cargo test|contracts:test/.test(c)),

@@ -1,0 +1,10 @@
+{
+  "id": "claude-haiku-5-5-raven-2026-11-17T22-31-06-t1",
+  "model": "claude-haiku-5-5",
+  "arm": "raven",
+  "budgetUsd": 3,
+  "wallMs": 257229,
+  "exitCode": 0,
+  "timedOut": false,
+  "workDir": "/var/folders/15/8mz80_5n6mg75f5t458dq0gr0000gn/T/csn-bench-drg7GV"
+}

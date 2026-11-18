@@ -36,6 +36,7 @@ if (name === "stellar") {
     fs.writeFileSync(path.join(dir, "hello_world.wasm"), process.env.STUB_WASM || "wasm-v1");
   }
   else if (cmd === "contract deploy") {
+    if (process.env.STUB_REQUIRE_ARGS && !args.includes("--")) fail("error: Missing required argument 'token' of type address");
     const wasm = fs.readFileSync(opt("--wasm"));
     s.count = (s.count || 0) + 1;
     const id = "C" + String(s.count).padStart(55, "A");
@@ -44,6 +45,9 @@ if (name === "stellar") {
   }
   else if (args[0] === "contract" && args[1] === "info" && args[2] === "hash") {
     const d = s.deployed[opt("--contract-id")]; if (!d || process.env.STUB_RESET) fail("contract not found"); process.stdout.write(d.hash + "\n");
+  }
+  else if (args[0] === "contract" && args[1] === "id" && args[2] === "asset") {
+    process.stdout.write("C" + "N".repeat(55) + "\n");
   }
   else if (cmd === "contract alias") { const d = s.deployed[args[3]]; if (!d) fail("alias not found"); process.stdout.write(d.id + "\n"); }
   else fail("stub: unexpected stellar " + args.join(" "));

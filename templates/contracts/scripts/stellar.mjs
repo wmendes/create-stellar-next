@@ -80,8 +80,61 @@ export function updateEnv(values) {
   if (!existsSync(".env") || readFileSync(".env", "utf8") !== text) writeFileSync(".env", text);
 }
 
-export function deployArgsFor(config, contract) {
-  return deployArgs(config, contract, `${config.project}-${contract.name}`);
+/** The deploy command for a plan: constructor arguments shown as written, not resolved. */
+export function deployArgsFor(config, contract, args = readConstructorArgs(contract)) {
+  const raw = Object.entries(args ?? {}).flatMap(([k, v]) => [`--${k}`, argValue(v)]);
+  return deployArgs(config, contract, `${config.project}-${contract.name}`, raw);
+}
+
+/** A contract's constructor arguments from its constructor.json, or undefined when it has none. */
+export function readConstructorArgs(contract) {
+  if (!contract.argsFile || !existsSync(contract.argsFile)) return undefined;
+  let args;
+  try {
+    args = JSON.parse(readFileSync(contract.argsFile, "utf8"));
+  } catch (error) {
+    throw new StepError(
+      `${contract.argsFile} is not valid JSON: ${error instanceof Error ? error.message : error}`,
+    );
+  }
+  if (typeof args !== "object" || args === null || Array.isArray(args)) {
+    throw new StepError(
+      `${contract.argsFile} must be a JSON object of constructor arguments, for example {"token": "asset:native"}.`,
+    );
+  }
+  return args;
+}
+
+function argValue(value) {
+  return typeof value === "string" ? value : JSON.stringify(value);
+}
+
+/**
+ * Constructor arguments as `--name value` pairs. A value written `asset:<asset>` (such as
+ * `asset:native`) becomes that asset's contract ID on the deploy network, with the stock
+ * `stellar contract id asset`; every other value is passed as written.
+ */
+function constructorArgs(config, args) {
+  return Object.entries(args ?? {}).flatMap(([name, value]) => {
+    const text = argValue(value);
+    const resolved = text.startsWith("asset:")
+      ? run(
+          "stellar",
+          [
+            "contract",
+            "id",
+            "asset",
+            "--asset",
+            text.slice("asset:".length),
+            ...config.networkArgs,
+          ],
+          {
+            capture: true,
+          },
+        )
+      : text;
+    return [`--${name}`, resolved];
+  });
 }
 
 /** Record an already deployed contract's ID for a network, without deploying. */
@@ -128,7 +181,8 @@ export function listContracts() {
       const toml = readFileSync(join(dir, e.name, "Cargo.toml"), "utf8");
       const crate = /^\s*name\s*=\s*"([^"]+)"/m.exec(toml)?.[1] ?? e.name;
       const name = crate.replace(/-/g, "_");
-      return { crate, name, wasm: `${WASM_DIR}/${name}.wasm` };
+      const argsFile = `${dir}/${e.name}/constructor.json`;
+      return { crate, name, wasm: `${WASM_DIR}/${name}.wasm`, argsFile };
     })
     .sort((a, b) => (a.name < b.name ? -1 : 1));
 }
@@ -155,7 +209,7 @@ function sha256(file) {
   return createHash("sha256").update(readFileSync(file)).digest("hex");
 }
 
-function deployArgs(config, contract, alias) {
+function deployArgs(config, contract, alias, ctorArgs = []) {
   return [
     "contract",
     "deploy",
@@ -166,11 +220,12 @@ function deployArgs(config, contract, alias) {
     ...config.networkArgs,
     "--alias",
     alias,
+    ...(ctorArgs.length > 0 ? ["--", ...ctorArgs] : []),
   ];
 }
 
 /** Deploy one contract. With `onlyIfChanged`, skip it when the network already runs this exact Wasm. */
-export function deploy(config, contract, { onlyIfChanged, confirmMainnet }) {
+export function deploy(config, contract, { onlyIfChanged, confirmMainnet, args }) {
   const alias = `${config.project}-${contract.name}`;
   if (!existsSync(contract.wasm))
     throw new StepError(`${contract.wasm} is missing. Run the contracts:build script first.`);
@@ -189,12 +244,20 @@ export function deploy(config, contract, { onlyIfChanged, confirmMainnet }) {
       return;
     }
   }
+  const declared = args ?? readConstructorArgs(contract);
   if (config.network === "mainnet" && !confirmMainnet) {
     throw new StepError(
-      `Refusing to deploy to mainnet without confirmation. This would run:\n  ${shown("stellar", deployArgs(config, contract, alias))}\nRerun with --confirm-mainnet only if the user asked for a mainnet deploy in this task.`,
+      `Refusing to deploy to mainnet without confirmation. This would run:\n  ${shown("stellar", deployArgsFor(config, contract, declared))}\nRerun with --confirm-mainnet only if the user asked for a mainnet deploy in this task.`,
     );
   }
-  run("stellar", deployArgs(config, contract, alias));
+  try {
+    run("stellar", deployArgs(config, contract, alias, constructorArgs(config, declared)));
+  } catch (error) {
+    if (!(error instanceof StepError) || declared) throw error;
+    throw new StepError(
+      `${error.message}\nIf this contract's constructor takes arguments, put them in ${contract.argsFile}, for example {"token": "asset:native"}. See docs/stellar/contracts.md.`,
+    );
+  }
   recordId(config.network, contract.name, { alias, id: aliasId(config, alias) });
 }
 

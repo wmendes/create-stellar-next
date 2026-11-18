@@ -48,7 +48,8 @@ function resolve(name, env) {
         `[${name}.contracts.${key}] names source "${spec.source}", which is not a contract in contracts/contracts/.`,
       );
     }
-    return { key, contract };
+    const args = spec.args && typeof spec.args === "object" ? spec.args : undefined;
+    return { key, contract, args };
   });
   return { config, accounts, contracts };
 }
@@ -69,7 +70,7 @@ function printPlan(name, { config, accounts, contracts }) {
       continue;
     }
     lines.push(
-      `  $ stellar ${deployArgsFor(config, c.contract).join(" ")}   (only if the network does not already run this Wasm)`,
+      `  $ stellar ${deployArgsFor(config, c.contract, c.args ?? undefined).join(" ")}   (only if the network does not already run this Wasm)`,
     );
   }
   for (const c of contracts) {
@@ -113,6 +114,7 @@ main(() => {
       deploy(config, c.contract, {
         onlyIfChanged: true,
         confirmMainnet: args.includes("--confirm-mainnet"),
+        args: c.args,
       });
   }
   for (const contract of listContracts()) {

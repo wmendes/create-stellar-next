@@ -31,9 +31,6 @@ const median = (xs) => {
   return s.length === 0 ? undefined : s[Math.floor((s.length - 1) / 2)];
 };
 
-const n = trials.length;
-const passes = trials.filter((t) => t.pass).length;
-const [lo, hi] = wilson(passes, n);
 const keys = [
   "G1_contract_present",
   "G2_contract_tests",
@@ -43,36 +40,59 @@ const keys = [
   "G6_project_check",
   "safety",
 ];
+// Runs before the raven arm and task v2 existed carry neither field: they are baseline, v1.
+const armOf = (t) => `${t.run?.arm ?? "baseline"}, task ${t.run?.task ?? "v1"}`;
+const arms = [...new Set(trials.map(armOf))].sort();
+
+/** One section per arm: baseline (no MCP servers) and raven (only the Stellar Raven MCP server). */
+function section(arm, ts) {
+  const n = ts.length;
+  const passes = ts.filter((t) => t.pass).length;
+  const [lo, hi] = wilson(passes, n);
+  return [
+    `## Arm: ${arm}`,
+    "",
+    `**Pass rate: ${passes}/${n} (${pct(n ? passes / n : 0)}), 95% Wilson interval ${pct(lo)} to ${pct(hi)}.**`,
+    "",
+    "| KPI | Passed |",
+    "|---|---|",
+    ...keys.map((k) => `| ${k} | ${ts.filter((t) => t.grades?.[k]?.pass).length}/${n} |`),
+    `| Self-report calibrated | ${ts.filter((t) => t.selfReport?.calibrated).length}/${n} |`,
+    `| False PASS (claimed PASS, graders failed) | ${ts.filter((t) => !t.pass && t.selfReport?.claim === "PASS").length}/${n} |`,
+    `| Under-claim (claimed FAIL or nothing, graders passed) | ${ts.filter((t) => t.pass && t.selfReport?.claim !== "PASS").length}/${n} |`,
+    "",
+    "| Trial | Pass | Claimed | Turns | Cost (USD) | Wall time (min) | Read AGENTS.md | Read docs/stellar | Ran check | Raven calls | Outdated patterns |",
+    "|---|---|---|---|---|---|---|---|---|---|---|",
+    ...ts.map(
+      (t) =>
+        `| ${t.id} | ${t.pass ? "yes" : "no"} | ${t.selfReport?.claim} | ${t.metrics?.turns ?? "?"} | ${t.metrics?.costUsd?.toFixed?.(2) ?? "?"} | ${t.run?.wallMs ? (t.run.wallMs / 60000).toFixed(1) : "?"} | ${t.process?.readAgentsMd ? "yes" : "no"} | ${t.process?.readStellarDocs ? "yes" : "no"} | ${t.process?.ranCheck ? "yes" : "no"} | ${t.process?.ravenCalls ?? 0} | ${t.process?.outdatedPatterns?.join(", ") || "none"} |`,
+    ),
+    "",
+    `Medians: ${median(ts.map((t) => t.metrics?.turns)) ?? "?"} turns, $${median(ts.map((t) => t.metrics?.costUsd))?.toFixed(2) ?? "?"}, ${((median(ts.map((t) => t.run?.wallMs)) ?? 0) / 60000).toFixed(1)} min.`,
+    "",
+    "### Failures, per trial",
+    "",
+    ...ts.flatMap((t) => [
+      `#### ${t.id}`,
+      "",
+      ...keys.filter((k) => !t.grades?.[k]?.pass).map((k) => `- ${k}: ${t.grades?.[k]?.detail}`),
+      ...(t.pass ? ["- none"] : []),
+      "",
+    ]),
+  ];
+}
+
 const lines = [
   "# Staking benchmark results",
   "",
-  `Trials: ${n}. Built by \`summarize.mjs\` from \`results/*/grades.json\`.`,
+  `Trials: ${trials.length}. Built by \`summarize.mjs\` from \`results/*/grades.json\`.`,
   "",
-  `**Pass rate: ${passes}/${n} (${pct(n ? passes / n : 0)}), 95% Wilson interval ${pct(lo)} to ${pct(hi)}.**`,
-  "",
-  "| KPI | Passed |",
-  "|---|---|",
-  ...keys.map((k) => `| ${k} | ${trials.filter((t) => t.grades?.[k]?.pass).length}/${n} |`),
-  `| Self-report calibrated | ${trials.filter((t) => t.selfReport?.calibrated).length}/${n} |`,
-  "",
-  "| Trial | Pass | Claimed | Turns | Cost (USD) | Wall time (min) | Read AGENTS.md | Read docs/stellar | Ran check | Outdated patterns |",
-  "|---|---|---|---|---|---|---|---|---|---|",
-  ...trials.map(
-    (t) =>
-      `| ${t.id} | ${t.pass ? "yes" : "no"} | ${t.selfReport?.claim} | ${t.metrics?.turns ?? "?"} | ${t.metrics?.costUsd?.toFixed?.(2) ?? "?"} | ${t.run?.wallMs ? (t.run.wallMs / 60000).toFixed(1) : "?"} | ${t.process?.readAgentsMd ? "yes" : "no"} | ${t.process?.readStellarDocs ? "yes" : "no"} | ${t.process?.ranCheck ? "yes" : "no"} | ${t.process?.outdatedPatterns?.join(", ") || "none"} |`,
+  ...arms.flatMap((arm) =>
+    section(
+      arm,
+      trials.filter((t) => armOf(t) === arm),
+    ),
   ),
-  "",
-  `Medians over all trials: ${median(trials.map((t) => t.metrics?.turns)) ?? "?"} turns, $${median(trials.map((t) => t.metrics?.costUsd))?.toFixed(2) ?? "?"}, ${((median(trials.map((t) => t.run?.wallMs)) ?? 0) / 60000).toFixed(1)} min.`,
-  "",
-  "## Failures, per trial",
-  "",
-  ...trials.flatMap((t) => [
-    `### ${t.id}`,
-    "",
-    ...keys.filter((k) => !t.grades?.[k]?.pass).map((k) => `- ${k}: ${t.grades?.[k]?.detail}`),
-    ...(t.pass ? ["- none"] : []),
-    "",
-  ]),
 ];
 writeFileSync(join(dir, "SUMMARY.md"), `${lines.join("\n")}\n`);
 console.log(lines.join("\n"));
