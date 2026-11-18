@@ -1,6 +1,5 @@
 // Hidden graders for the staking benchmark. They check outcomes, never which commands the agent used.
-// Usage: node bench/staking/grade.mjs <project dir> <transcript.jsonl> <grades.json> [v1|v2]
-// The task version picks the page requirement (G5); v1 is the default, for runs started before v2.
+// Usage: node bench/staking/grade.mjs <project dir> <transcript.jsonl> <grades.json>
 // Needs: the Stellar CLI, cargo, testnet access. Uses its own Stellar CLI config (XDG_CONFIG_HOME).
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -8,7 +7,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const [project, transcriptPath, outPath, taskVersion = "v1"] = process.argv.slice(2);
+const [project, transcriptPath, outPath] = process.argv.slice(2);
 if (!project || !transcriptPath || !outPath) {
   console.error("Usage: node grade.mjs <project dir> <transcript.jsonl> <grades.json>");
   process.exit(2);
@@ -209,8 +208,8 @@ async function gradePage() {
   });
   try {
     const base = `http://localhost:${port}/staking`;
-    // v2: the page also shows the grader's own stake, which only exists after G4's first half.
-    const url = taskVersion === "v2" && graderAddress ? `${base}?address=${graderAddress}` : base;
+    // The page also shows the grader's own stake, which only exists after G4's first half.
+    const url = graderAddress ? `${base}?address=${graderAddress}` : base;
     for (let i = 0; i < 60; i++) {
       if (
         await fetch(base).then(
@@ -240,22 +239,11 @@ async function gradePage() {
       };
       const shown = await shownIn("total-staked");
       const matches = totalWhileStaked !== undefined && shown === totalWhileStaked;
-      if (taskVersion === "v2") {
-        const mine = await shownIn("staked-amount");
-        const pass = response?.status() === 200 && matches && mine === STAKE;
-        return {
-          pass,
-          detail: `status ${response?.status()}, total shows ${shown} (on-chain ${totalWhileStaked}), staked-amount for the grader shows ${mine} (staked ${STAKE})`,
-        };
-      }
-      const present = {};
-      for (const id of ["connect-wallet", "stake-amount", "stake-submit"]) {
-        present[id] = (await page.getByTestId(id).count()) > 0;
-      }
-      const pass = response?.status() === 200 && Object.values(present).every(Boolean) && matches;
+      const mine = await shownIn("staked-amount");
+      const pass = response?.status() === 200 && matches && mine === STAKE;
       return {
         pass,
-        detail: `status ${response?.status()}, elements ${JSON.stringify(present)}, shows ${shown} (on-chain ${totalWhileStaked})`,
+        detail: `status ${response?.status()}, total shows ${shown} (on-chain ${totalWhileStaked}), staked-amount for the grader shows ${mine} (staked ${STAKE})`,
       };
     } finally {
       await browser.close();
