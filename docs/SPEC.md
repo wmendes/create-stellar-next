@@ -600,6 +600,7 @@ A dependency written `G1` means the human has approved that gate.
 | T-208 | `dev` before `setup` stops with the fix | T-205 | DEC-038 | review | In a project with `lib/contracts.ts` whose clients are missing, `dev` exits non-zero before starting Next.js and names `npm run setup`, the same guard as `check` |
 | T-209 | Constructor arguments for deploys | T-203, T-402 | DEC-039 | review | `setup`, `contracts:deploy`, the watcher and `envs:apply` pass a contract's constructor arguments from `constructor.json` (or `args` in `stellar.envs.toml`) after `--`; `asset:<asset>` resolves per network; a deploy failing without the file names where the arguments go |
 | T-210 | Generated AGENTS.md points agents at Raven | T-501 | §5.7, DEC-040, DEC-041 | review | The generated `AGENTS.md` has a Raven section before the rules: what Raven is (URL, read-only); when its tools are present, use them at named moments (before code against a Stellar API new to the project; for network facts, SEPs, tokens, wallets and ecosystem projects; on an unrecognised error), not skipped because tests pass, with each lookup listed in the final report (DEC-041); when absent, tell the user once and suggest installing it (Claude Code command, or any agent's HTTP MCP config), then continue. Still under 80 lines with the six rules |
+| T-611 | Staking benchmark without task versions | T-610 | DEC-042 | review | One prompt and one grader path (the headlessly verifiable task); no `--task` flag; runs of earlier wordings in `results/superseded/`, left out of `SUMMARY.md`; README history explains why |
 | T-301 | `doctor` | G2 | §5.1, INV-07, INV-08, INV-12 | done | Checks come from the module definitions; `--json` validates against its schema; a deliberately removed prerequisite gives exit `3` and the fixing command; identity existence and funding are checked |
 | T-302 | `add contract` and `add local` | T-301 | INV-05, INV-10, INV-11, V-05, V-14 | done | Each is idempotent (second run, no diff); each refuses an edited file without `--force`; `network:start` exists only with local |
 | T-303 | `add wallet` for each verified option | T-302, T-003 | §5.5, V-07, V-09, V-15 | done | Each option implements `connect`, `disconnect`, `getAddress`, `signTransaction` in `lib/wallet/index.ts`; rerunning with another option swaps the adapter without touching pages; idempotent; `create --wallet` uses the same module |
@@ -1054,6 +1055,12 @@ Decision: when Raven's tools are present, the section names the moments to use t
 Alternatives: a numbered rule (rejected for the reason in DEC-040). "Always look up every API you use" (rejected: costly on every task, and the project's guides already cover its own APIs). Leaving the wording and accepting zero calls (rejected by the human).
 Consequences: §5.7; docs test extended. Whether agents now call Raven is measured by rerunning the staking benchmark's task v2 Raven arm on a CLI with this change.
 
+### DEC-042: The staking benchmark is not versioned; the human merged the open stack (2026-11-18, T-611)
+Context: Q-24 asked whether the staking benchmark's changes after its first trials (grader fixes, a second task wording kept as "v2") were acceptable under INV-16. The human answered "benchmark should not be versioned now", and in the same message asked to "merge everything" (PRs #2 to #7).
+Decision: the headlessly verifiable task is the only one: `prompt.md`, one G5 (total and per-address stake), no `--task` flag. Runs of the earlier wording, and Raven runs made before DEC-041, move to `bench/staking/results/superseded/` and are not summarized. `--label` stays, to keep runs on different CLI builds apart. The agent merged PRs #2 to #7 into `main` in stack order, each retargeted to `main` first, after CI passed on each; this relaxes "never merge your own PR" for that instruction only.
+Alternatives: keep v1 and v2 side by side (rejected by the human). Delete the superseded runs (rejected: raw data is kept; moving it keeps the summary honest).
+Consequences: bench/staking README, run.mjs, grade.mjs, summarize.mjs; INV-16 applies to the staking benchmark from here: a later change to its prompt or graders is a new benchmark, not a version.
+
 ## §11 Open questions
 
 Each has a default. "Blocks" names the first task that cannot finish without an answer. An answer of "use the default" is enough.
@@ -1062,6 +1069,7 @@ Each has a default. "Blocks" names the first task that cannot finish without an 
 
 | ID | Answer (2026-11-17) |
 |---|---|
+| Q-24 | The human (2026-11-18): "benchmark should not be versioned now". The staking benchmark has one prompt and one grader path from T-611 (DEC-042) |
 | Q-01 | Approved ("approved. proceed") |
 | Q-02 | Default taken with the approval: `docs/SOURCES.md` replaces `docs/verified-facts.md` and ships; `docs/SPEC.md` and `docs/reference/` do not ship |
 | Q-03 | Default taken with the approval: `PROGRESS.md` is dropped |
@@ -1083,7 +1091,6 @@ The human answered Q-01 explicitly. Q-02 to Q-04 were taken as the defaults writ
 
 | ID | Question | Default | Blocks |
 |---|---|---|---|
-| Q-24 (2026-11-17, T-610) | INV-16 says benchmark prompts and graders are frozen before the first trial. The staking benchmark (T-610, outside M6) changed after its first trials: the grader now counts shell reads as doc reads (a measurement fix) and splits self-report misses, and task v2 (new prompt, new G5) was added after v1 under-claimed. v1's prompt and G5 are unchanged and v1 runs grade on v1 rules. Is that acceptable for T-610, or should INV-16 apply to it strictly? | Accept for T-610 with versioned tasks: a prompt or grader change makes a new task version, never pooled with the old one; INV-16 stays strict for M6 | Reporting T-610 results as final |
 | Q-07 (answered in T-201) | Does `create` run the package manager install? The plan does not say. The v0 quickstart has no install step and describes `--package-manager` as "used for install", which implies yes | Yes. Skipped under `--dry-run` | T-103 |
 | Q-20 (answered in T-203, DEC-016) | Stellar CLI aliases and identities are global by default (`~/.config/stellar`). A generated `setup` that deploys with `--alias hello_world` would silently replace another project's alias of the same name. The plan fixes "contract IDs are Stellar CLI aliases" but says nothing about scope. Is a per-project scope acceptable, and which form? | Decide in T-203 between a project-local `--config-dir` and project-prefixed alias names, check the chosen form against the CLI, log a DEC, and keep `STELLAR_ACCOUNT` an identity name either way | T-203 |
 | Q-19 (answered 2026-11-17, DEC-023) | V-07 is contradicted in part. The plan says Stellar Wallets Kit v2 is "on JSR, not npm". Both registries publish 2.8.0, though the vendor's README installs from JSR. Which should the `wallets-kit` module install? | JSR, as the vendor documents: `npx jsr add @creit-tech/stellar-wallets-kit`. The npm copy is noted in the bundled docs | T-303 |
