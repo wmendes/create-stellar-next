@@ -38,10 +38,7 @@
     "readAgentsMd": true,
     "readStellarDocs": true,
     "ravenCalls": 2,
-    "ravenOperations": [
-      "search",
-      "execute"
-    ],
+    "ravenOperations": ["search", "execute"],
     "ranSetup": true,
     "ranCheck": true,
     "ranContractTests": true,
