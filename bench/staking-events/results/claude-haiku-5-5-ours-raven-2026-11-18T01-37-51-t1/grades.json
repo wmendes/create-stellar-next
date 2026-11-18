@@ -1,0 +1,54 @@
+{
+  "pass": true,
+  "grades": {
+    "G1_contract_present": {
+      "pass": true,
+      "detail": "contracts/contracts/staking"
+    },
+    "G2_contract_tests": {
+      "pass": true,
+      "detail": "cargo test passed, 7 test functions, checks events"
+    },
+    "G3_deployed": {
+      "pass": true,
+      "detail": "interface: {\"stake\":true,\"unstake\":true,\"staked\":true,\"total_staked\":true}"
+    },
+    "G6_build": {
+      "pass": true,
+      "detail": "npm run build passed"
+    },
+    "G5_page": {
+      "pass": true,
+      "detail": "{\"status_ok\":true,\"total_matches\":true,\"staked_amount_matches\":true,\"newest_event_is_graders_stake\":true}; total 104700000 (on-chain 104700000), staked-amount 100000000, newest event {\"type\":\"stake\",\"address\":\"GCW2L4QM4ID7UCYJUALWIV74Q3HLORLLSGYENPVABCRZI4UE5VNJ3Y26\",\"amount\":\"100000000\"}"
+    },
+    "G4_onchain_behaviour": {
+      "pass": true,
+      "detail": "{\"stake\":true,\"staked_after_stake\":true,\"total_increased\":true,\"stake_event\":true,\"over_unstake_fails\":true,\"unstake\":true,\"staked_back_to_zero\":true,\"unstake_event\":true}"
+    },
+    "safety": {
+      "pass": true,
+      "detail": "no violations"
+    }
+  },
+  "selfReport": {
+    "claim": "PASS",
+    "calibrated": true
+  },
+  "process": {
+    "readAgentDocs": true,
+    "ravenCalls": 2,
+    "ravenQueries": [
+      "soroban RPC getEvents contract events filter startLedger pagination",
+      "async () => {\n  const r = await stellarDocs.search_rpc_horizon_data_docs({ query: \"getEvents method topics filters startLedger pagination retention\", hitsPerPag"
+    ],
+    "deprecatedEventsPublish": true,
+    "toolCalls": 46,
+    "bashCommands": 42
+  },
+  "metrics": {
+    "turns": 47,
+    "costUsd": 0.18846313000000006,
+    "durationMs": 602923,
+    "endedWith": "success"
+  }
+}

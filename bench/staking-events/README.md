@@ -58,3 +58,17 @@ workflow contains a fixed test identity's secret key, so safety scans only files
   no events, and G5 failed it.
 - Untouched projects from both starters with a false `RESULT: PASS`: every outcome KPI fails and the
   claim is marked miscalibrated; safety passes on Scaffold's untouched project.
+
+## Results (2026-11-18, one run per starter)
+
+| Starter | Pass | Verdict | Turns | Cost | Time | Raven calls | Event API |
+|---|---|---|---|---|---|---|---|
+| This tool | yes | PASS, calibrated | 47 | $0.19 | 10.4 min | 2 (RPC `getEvents` paging) | deprecated `env.events().publish` |
+| Scaffold Stellar 0.0.34 | yes | PASS, calibrated | 44 | $0.20 | 8.6 min | 0 | `#[contractevent]` |
+
+Both met every requirement. The difference is in how: this tool's agent looked up `getEvents` paging in
+Raven before writing the feed; Scaffold's agent found the same behaviour by probing the RPC. Neither
+checked the contract-side event API with Raven: this tool's agent wrote the deprecated call from memory
+and ignored the compiler's deprecation warning (nothing in the project flags it: `docs/stellar/outdated.md`
+does not list it and `check` passes with warnings); Scaffold's agent used the current macro from memory.
+One run each cannot separate the starters.
